@@ -14,11 +14,9 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int yLastAng;
     int xCurrent;
     int yCurrent;
-    boolean isHeld;
 
     public RenderPanel(ArrayList<Triangle> p) {
         this.polygons = p;
-        this.isHeld = false;
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
     }
@@ -56,6 +54,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             Vertex v2 = transform.transform(t.v2);
             Vertex v3 = transform.transform(t.v3);
 
+            Vertex normal = Vertex.normalVector(v1, v2, v3);
+
             v1.x += getWidth() / 2.0;
             v1.y += getHeight() / 2.0;
             v2.x += getWidth() / 2.0;
@@ -78,7 +78,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                     if (V1 && V2 && V3){
                         double depth = v1.z + v2.z + v3.z;
                         if (zBuffer[x][y] < depth){
-                            g2.setColor(t.color);
+                            g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
                             g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
                             zBuffer[x][y] = depth;
                         }
@@ -93,17 +93,16 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (isHeld){
-            double dpi = 0.03;
-            double xi = 180.0 / this.getWidth();
-            double yi = 180.0 / this.getHeight();
-            xAng = (int) ((xCurrent - (e.getX())) * xi + xLastAng);
-            yAng = -(int) ((yCurrent - (e.getY())) * yi - yLastAng);
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+        double dpi = 0.03;
+        double xi = 180.0 / this.getWidth();
+        double yi = 180.0 / this.getHeight();
+        xAng = -(int) ((xCurrent - (e.getX())) * xi - xLastAng);
+        yAng = (int) ((yCurrent - (e.getY())) * yi + yLastAng);
 
-            System.out.println(Math.toRadians(xAng));
-            System.out.println(Math.toRadians(yAng));
-            this.repaint();
-        }
+        System.out.println(Math.toRadians(xAng));
+        System.out.println(Math.toRadians(yAng));
+        this.repaint();
     }
 
     @Override
@@ -120,14 +119,13 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public void mousePressed(MouseEvent e) {
         xCurrent = e.getX();
         yCurrent = e.getY();
-        isHeld = true;
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        this.setCursor(Cursor.getDefaultCursor());
         xLastAng = xAng;
         yLastAng = yAng;
-        isHeld = false;
     }
 
     @Override
