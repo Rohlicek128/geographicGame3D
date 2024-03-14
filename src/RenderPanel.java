@@ -1,24 +1,26 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.util.ArrayList;
 
-public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener {
+public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
     ArrayList<Triangle> polygons;
+    Countries countries;
     int xAng;
     int yAng;
     int xLastAng;
     int yLastAng;
     int xCurrent;
     int yCurrent;
+    double zoomSize = 1;
 
     public RenderPanel(ArrayList<Triangle> p) {
         this.polygons = p;
+        this.countries = new Countries("world-administrative-boundaries-testSmall.csv");
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
+        this.addMouseWheelListener(this);
     }
 
     public void paintComponent(Graphics g){
@@ -49,10 +51,15 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         g2.translate(getWidth() / 2, getHeight() / 2);
         g2.setColor(new Color(255,255,255));
-        for (Triangle t : polygons){
+        //Triangle t : polygons
+        for (Triangle t : countries.polygons.get(1).geoShape.triangles){
             Vertex v1 = transform.transform(t.v1);
             Vertex v2 = transform.transform(t.v2);
             Vertex v3 = transform.transform(t.v3);
+
+            v1 = new Vertex(v1.x * zoomSize, v1.y * zoomSize, v1.z * zoomSize);
+            v2 = new Vertex(v2.x * zoomSize, v2.y * zoomSize, v2.z * zoomSize);
+            v3 = new Vertex(v3.x * zoomSize, v3.y * zoomSize, v3.z * zoomSize);
 
             Vertex normal = Vertex.normalVector(v1, v2, v3);
 
@@ -87,6 +94,21 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             }
         }
 
+        /*int n = 1;
+        Path2D path = new Path2D.Double();
+        path.moveTo(countries.polygons.get(n).GeoShape.vertices.get(0).x, countries.polygons.get(n).GeoShape.vertices.get(0).y);
+        for (int i = 1; i < countries.polygons.get(n).GeoShape.vertices.size(); i++) {
+            double x = countries.polygons.get(n).GeoShape.vertices.get(i).x;
+            double y = countries.polygons.get(n).GeoShape.vertices.get(i).y;
+            g2.setColor(new Color(255,255,255));
+            path.lineTo(x, y);
+        }
+        path.closePath();
+        g2.draw(path);*/
+
+        g2.setColor(new Color(255,255,255));
+        g2.setFont(new Font("Ariel", Font.BOLD, 20));
+        g2.drawString("ZOOM: " + zoomSize + "x", -getWidth() / 3,getHeight() / 3);
     }
 
 
@@ -136,5 +158,14 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     @Override
     public void mouseExited(MouseEvent e) {
 
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        zoomSize -= e.getWheelRotation() * 0.1;
+        zoomSize = Math.round(zoomSize * 100) / 100.0;
+        if (zoomSize < 0.1) zoomSize = 0.1;
+        if (zoomSize > 3) zoomSize = 3;
+        repaint();
     }
 }
