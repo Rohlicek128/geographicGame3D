@@ -52,7 +52,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.translate(getWidth() / 2, getHeight() / 2);
         g2.setColor(new Color(255,255,255));
         //Triangle t : polygons
-        for (Triangle t : countries.polygons.get(1).geoShape.triangles){
+        for (Triangle t : countries.polygons.get(5).geoShape.triangles){
             Vertex v1 = transform.transform(t.v1);
             Vertex v2 = transform.transform(t.v2);
             Vertex v3 = transform.transform(t.v3);
