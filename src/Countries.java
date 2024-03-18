@@ -1,10 +1,13 @@
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class Countries {
 
     ArrayList<CountryPolygon> polygons = new ArrayList<>();
+    int count = 1;
 
     public Countries(String file) {
         loadFromFile(file);
@@ -43,14 +46,15 @@ public class Countries {
                     //System.out.println("multi");
                 }
                 else {
-                    System.out.println(type);
-                    geoPoly geoPoly = new geoPoly(gps);
+                    int randomNum = new Random().nextInt(230) + 256 - 230;
+                    GeoPoly geoPoly = new GeoPoly(gps, new Color(randomNum, randomNum, randomNum));
 
                     String name = split[5];
+                    System.out.println(count + ". " + name);
+                    count++;
 
                     polygons.add(new CountryPolygon(name, geoPoly, geoPoint, type));
                 }
-
             }
         }
         catch (Exception e){

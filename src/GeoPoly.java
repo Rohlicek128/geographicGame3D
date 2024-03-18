@@ -1,24 +1,24 @@
 import org.locationtech.jts.geom.*;
-import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Random;
 
-public class geoPoly {
+public class GeoPoly {
 
     ArrayList<Vertex> vertices = new ArrayList<>();
     ArrayList<Triangle> triangles = new ArrayList<>();
+    Color color;
 
-    public geoPoly(ArrayList<Vertex> vertices) {
+    public GeoPoly(ArrayList<Vertex> vertices) {
         this.vertices = vertices;
     }
 
-    public geoPoly(double[][] gps) {
+    public GeoPoly(double[][] gps, Color color) {
+        this.color = color;
         loadGPStoCoordinates(gps);
-        this.triangles = triangulation(verticesToGeometry(), 0);
+        this.triangles = triangulation(verticesToGeometry(vertices), 0);
     }
 
     public ArrayList<Triangle> geometryToVertices(Geometry g){
@@ -50,66 +50,15 @@ public class geoPoly {
         else return 0;
     }
 
-    public Geometry verticesToGeometry(){
-        /*Vertex leftmost = new Vertex(Double.POSITIVE_INFINITY, 0, 0);
-        for (Vertex v : vertices) {
-            if (v.x < leftmost.x) leftmost = v;
-        }
-        vertices.remove(leftmost);
-        Vertex rightmost = new Vertex(Double.NEGATIVE_INFINITY, 0, 0);
-        for (Vertex v : vertices) {
-            if (v.x > rightmost.x) rightmost = v;
-        }
-        vertices.remove(rightmost);
-
-        ArrayList<Vertex> A = new ArrayList<>();
-        for (Vertex v : vertices){
-            if (vertexAboveLine(v, leftmost, rightmost) == -1) A.add(v);
-        }
-        ArrayList<Vertex> B = new ArrayList<>();
-        for (Vertex v : vertices){
-            if (vertexAboveLine(v, leftmost, rightmost) == 1) B.add(v);
-        }
-
-        for (int i = 0; i < A.size(); i++) {
-            for (int j = 0; j < A.size() - 1; j++) {
-                if (A.get(j).x > A.get(j + 1).x){
-                    Vertex temp = A.get(j);
-                    A.set(j, A.get(j + 1));
-                    A.set(j + 1, temp);
-                }
-            }
-        }
-        for (int i = 0; i < B.size(); i++) {
-            for (int j = 0; j < B.size() - 1; j++) {
-                if (B.get(j).x < B.get(j + 1).x){
-                    Vertex temp = B.get(j);
-                    B.set(j, B.get(j + 1));
-                    B.set(j + 1, temp);
-                }
-            }
-        }
-
-        Coordinate[] coordinates = new Coordinate[A.size() + B.size() + 3];
-
-        coordinates[0] = new Coordinate(leftmost.x, leftmost.y, leftmost.z);
-        for (int i = 0; i < A.size(); i++){
-            coordinates[i + 1] = new Coordinate(A.get(i).x, A.get(i).y, A.get(i).z);
-        }
-        coordinates[A.size() + 1] = new Coordinate(rightmost.x, rightmost.y, rightmost.z);
-        for (int i = 0; i < B.size(); i++){
-            coordinates[i + A.size() + 2] = new Coordinate(B.get(i).x, B.get(i).y, B.get(i).z);
-        }
-        coordinates[coordinates.length - 1] = coordinates[0];*/
-
-        Coordinate[] coordinates = new Coordinate[vertices.size() + 1];
-        for (int i = 0; i < vertices.size(); i++){
+    public Geometry verticesToGeometry(ArrayList<Vertex> v){
+        Coordinate[] coordinates = new Coordinate[v.size() + 1];
+        for (int i = 0; i < v.size(); i++){
             coordinates[i] = new Coordinate();
-            coordinates[i].setX(vertices.get(i).x);
-            coordinates[i].setY(vertices.get(i).y);
-            coordinates[i].setZ(vertices.get(i).z);
+            coordinates[i].setX(v.get(i).x);
+            coordinates[i].setY(v.get(i).y);
+            coordinates[i].setZ(v.get(i).z);
         }
-        coordinates[vertices.size()] = coordinates[0];
+        coordinates[v.size()] = coordinates[0];
 
         return new GeometryFactory().createPolygon(coordinates);
     }
@@ -122,8 +71,8 @@ public class geoPoly {
             Vertex v2 = gpsToSphere(new Vertex(coordinates[1].x, coordinates[1].y, coordinates[1].z));
             Vertex v3 = gpsToSphere(new Vertex(coordinates[2].x, coordinates[2].y, coordinates[2].z));
 
-            int randomNum = new Random().nextInt(200) + 256 - 200;
-            temp.add(new Triangle(v1, v2, v3, new Color(randomNum,randomNum,randomNum)));
+            //int randomNum = new Random().nextInt(200) + 256 - 200;
+            temp.add(new Triangle(v1, v2, v3, color));
         }
         return temp;
     }
@@ -134,10 +83,15 @@ public class geoPoly {
         builder.setTolerance(tolerance);
 
         Geometry triangulation = builder.getTriangles(new GeometryFactory());
-        triangulation.buffer(0.0001 * 0.0001 * 0.0001);
+        //triangulation.buffer(0.0001 * 0.0001 * 0.0001);
 
-        System.out.println(triangulation.intersects(g));
-        triangulation = triangulation.intersection(g);
+        try {
+            triangulation = triangulation.intersection(g.buffer(0.0001));
+        }
+        catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
         return geometryToTriangles(triangulation);
     }
 
@@ -168,11 +122,12 @@ public class geoPoly {
 
     public Vertex gpsToSphere(Vertex gps){
         double resize = 100.0;
-        double x = Math.sin(gps.x);
-        double y = Math.sin(gps.y);
-        double z = Math.cos(gps.y);
-        //return new Vertex(x * resize, y * resize, z * resize);
-        return new Vertex(gps.x, -gps.y, gps.z);
+        double x = Math.sin(Math.toRadians(gps.x));
+        double y = Math.sin(Math.toRadians(gps.y));
+        double z = Math.cos(Math.toRadians(gps.x)) * Math.cos(Math.toRadians(gps.y));
+
+        return new Vertex(x * resize, -y * resize, z * resize);
+        //return new Vertex(gps.x, -gps.y, -gps.z);
     }
 
     /*ArrayList<Vertex> sorted = new ArrayList<>();
