@@ -7,8 +7,8 @@ public class Renderer extends JFrame {
     ArrayList<Triangle> polygons = new ArrayList<>();
 
     public Renderer() {
-        defObjectPyramid();
-        //defObjectSquare();
+        //defObjectPyramid();
+        defObjectSquare();
 
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());

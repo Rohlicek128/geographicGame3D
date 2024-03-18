@@ -1,6 +1,3 @@
-import org.locationtech.jts.triangulate.ConformingDelaunayTriangulationBuilder;
-import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
@@ -8,7 +5,6 @@ import java.util.ArrayList;
 public class Countries {
 
     ArrayList<CountryPolygon> polygons = new ArrayList<>();
-    //ConformingDelaunayTriangulationBuilder
 
     public Countries(String file) {
         loadFromFile(file);
@@ -28,23 +24,33 @@ public class Countries {
                         Double.parseDouble(geoPointSplit[1])
                 };
 
-                //"{""coordinates"": [
                 String p = split[1].replace("\"{\"\"coordinates\"\": [", "");
                 p = p.replace("[", "");
                 p = p.replace("]", "");
                 String[] pSplit = p.split(",");
                 double[][] gps;
-                gps = new double[pSplit.length][2];
+                gps = new double[pSplit.length / 2][2];
                 for (int i = 0; i < pSplit.length / 2; i++) {
                     for (int j = 0; j < 2; j++) {
-                        gps[i][j] = Double.parseDouble(pSplit[i + j]);
+                        double x = Double.parseDouble(pSplit[i * 2 + j]);
+                        if (x != 0.0){
+                            gps[i][j] = x;
+                        }
                     }
                 }
-                Polygon polygon = new Polygon(gps);
+                String type = pSplit[pSplit.length - 1];
+                if (type.equalsIgnoreCase(" \"\"type\"\": \"\"MultiPolygon\"\"}\"")){
+                    //System.out.println("multi");
+                }
+                else {
+                    System.out.println(type);
+                    geoPoly geoPoly = new geoPoly(gps);
 
-                String name = split[5];
+                    String name = split[5];
 
-                polygons.add(new CountryPolygon(name, polygon, geoPoint));
+                    polygons.add(new CountryPolygon(name, geoPoly, geoPoint, type));
+                }
+
             }
         }
         catch (Exception e){

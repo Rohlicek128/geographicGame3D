@@ -1,10 +1,14 @@
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Path2D;
 import java.util.ArrayList;
 
-public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
+public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener, ChangeListener {
 
+    JSlider slider;
     ArrayList<Triangle> polygons;
     Countries countries;
     int xAng;
@@ -16,6 +20,18 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     double zoomSize = 1;
 
     public RenderPanel(ArrayList<Triangle> p) {
+        slider = new JSlider(0, 50, 1);
+        slider.setPaintTrack(true);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+
+        slider.setMajorTickSpacing(50);
+        slider.setMinorTickSpacing(5);
+        slider.setOrientation(SwingConstants.VERTICAL);
+        slider.addChangeListener(this);
+        slider.setFocusable(true);
+        this.add(slider);
+
         this.polygons = p;
         this.countries = new Countries("world-administrative-boundaries-testSmall.csv");
         this.addMouseMotionListener(this);
@@ -52,7 +68,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.translate(getWidth() / 2, getHeight() / 2);
         g2.setColor(new Color(255,255,255));
         //Triangle t : polygons
-        for (Triangle t : countries.polygons.get(5).geoShape.triangles){
+        for (Triangle t : countries.polygons.get(0).geoShape.triangles){
             Vertex v1 = transform.transform(t.v1);
             Vertex v2 = transform.transform(t.v2);
             Vertex v3 = transform.transform(t.v3);
@@ -94,21 +110,31 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             }
         }
 
-        /*int n = 1;
-        Path2D path = new Path2D.Double();
-        path.moveTo(countries.polygons.get(n).GeoShape.vertices.get(0).x, countries.polygons.get(n).GeoShape.vertices.get(0).y);
-        for (int i = 1; i < countries.polygons.get(n).GeoShape.vertices.size(); i++) {
-            double x = countries.polygons.get(n).GeoShape.vertices.get(i).x;
-            double y = countries.polygons.get(n).GeoShape.vertices.get(i).y;
+        for (int i = 0; i < countries.polygons.size(); i++) {
+            ArrayList<Vertex> vertices = countries.polygons.get(i).geoShape.vertices;
+            //if (countries.polygons.get(i).type.equalsIgnoreCase(" \"\"type\"\": \"\"MultiPolygon\"\"}\"")) continue;
+
             g2.setColor(new Color(255,255,255));
-            path.lineTo(x, y);
+            Path2D path = new Path2D.Double();
+            double x = vertices.get(0).x * zoomSize;
+            double y = -vertices.get(0).y * zoomSize;
+            path.moveTo(x, y);
+            for (int j = 1; j < vertices.size(); j++) {
+                x = vertices.get(j).x * zoomSize;
+                y = -vertices.get(j).y * zoomSize;
+                path.lineTo(x, y);
+                //g2.setColor(new Color(255,255,255));
+                //g2.fillOval((int) ((int) v.x * zoomSize), (int) -((int) v.y * zoomSize), (int) Math.ceil(zoomSize * 2), (int) Math.ceil(zoomSize * 2));
+            }
+            path.closePath();
+            g2.draw(path);
         }
-        path.closePath();
-        g2.draw(path);*/
+
 
         g2.setColor(new Color(255,255,255));
         g2.setFont(new Font("Ariel", Font.BOLD, 20));
         g2.drawString("ZOOM: " + zoomSize + "x", -getWidth() / 3,getHeight() / 3);
+        //slider.paint(g);
     }
 
 
@@ -121,9 +147,6 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         double yi = 180.0 / this.getHeight();
         xAng = -(int) ((xCurrent - (e.getX())) * xi - xLastAng);
         yAng = (int) ((yCurrent - (e.getY())) * yi + yLastAng);
-
-        System.out.println(Math.toRadians(xAng));
-        System.out.println(Math.toRadians(yAng));
         this.repaint();
     }
 
@@ -162,10 +185,17 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
-        zoomSize -= e.getWheelRotation() * 0.1;
+        zoomSize -= e.getWheelRotation() * 1;
         zoomSize = Math.round(zoomSize * 100) / 100.0;
         if (zoomSize < 0.1) zoomSize = 0.1;
-        if (zoomSize > 3) zoomSize = 3;
+        //if (zoomSize > 10) zoomSize = 10;
+        slider.setValue((int) zoomSize);
+        repaint();
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        zoomSize = slider.getValue();
         repaint();
     }
 }
