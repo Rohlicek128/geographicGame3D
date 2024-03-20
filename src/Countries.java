@@ -2,6 +2,7 @@ import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class Countries {
@@ -12,6 +13,46 @@ public class Countries {
     public Countries(String file) {
         loadFromFile(file);
     }
+
+    public List<String[]> readData(String path){
+        List<String[]> temp = new ArrayList<>();
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(path));
+            String s = "";
+            while ((s = br.readLine()) != null){
+                temp.add(s.split(";"));
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return temp;
+    }
+
+    /*public ArrayList<CountryPolygon> distilCountryData(List<String[]> data){
+        ArrayList<CountryPolygon> temp = new ArrayList<>();
+        for (String[] d : data) {
+            ArrayList<String> gpsArray = new ArrayList<>();
+            d[1] = d[1].replace("\"{\"\"coordinates\"\": ", "");
+
+
+            String name = d[5];
+            System.out.println(count + ". " + name);
+            count++;
+
+            int randomNum = new Random().nextInt(230) + 256 - 230;
+            GeoPoly geoPoly = new GeoPoly(gps, new Color(randomNum, randomNum, randomNum));
+
+            String[] dgp = d[0].split(",");
+            double[] geoPoint = new double[]{
+                    Double.parseDouble(dgp[0]),
+                    Double.parseDouble(dgp[1])
+            };
+
+            temp.add(new CountryPolygon(name, geoPoly, geoPoint, type));
+        }
+        return temp;
+    }*/
 
     public void loadFromFile(String file){
         try {
@@ -46,12 +87,15 @@ public class Countries {
                     //System.out.println("multi");
                 }
                 else {
-                    int randomNum = new Random().nextInt(230) + 256 - 230;
-                    GeoPoly geoPoly = new GeoPoly(gps, new Color(randomNum, randomNum, randomNum));
-
                     String name = split[5];
                     System.out.println(count + ". " + name);
                     count++;
+
+                    int randomNum = new Random().nextInt(55);
+                    int red = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
+                    int green = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
+                    int blue = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
+                    GeoPoly geoPoly = new GeoPoly(gps, new Color(red + randomNum, green + randomNum, blue + randomNum));
 
                     polygons.add(new CountryPolygon(name, geoPoly, geoPoint, type));
                 }

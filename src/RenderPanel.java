@@ -3,36 +3,29 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 
-public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener, ChangeListener {
+public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
-    JSlider slider;
     ArrayList<Triangle> polygons;
     Countries countries;
-    int xAng;
-    int yAng;
-    int xLastAng;
-    int yLastAng;
-    int xCurrent;
-    int yCurrent;
+    double xAng;
+    double yAng;
+    double xLastAng;
+    double yLastAng;
+    double xCurrent;
+    double yCurrent;
+
+    int mouseX;
+    int mouseY;
     double zoomSize = 1;
 
     public RenderPanel(ArrayList<Triangle> p) {
-        /*slider = new JSlider(0, 50, 1);
-        slider.setPaintTrack(true);
-        slider.setPaintTicks(true);
-        slider.setPaintLabels(true);
-
-        slider.setMajorTickSpacing(50);
-        slider.setMinorTickSpacing(5);
-        slider.setOrientation(SwingConstants.VERTICAL);
-        slider.addChangeListener(this);
-        slider.setFocusable(true);
-        slider.setExtent(50);
-        this.add(slider);*/
-
         this.polygons = p;
         this.countries = new Countries("world-administrative-boundaries.csv");
         this.addMouseMotionListener(this);
@@ -68,13 +61,32 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         g2.translate(getWidth() / 2, getHeight() / 2);
 
-        g2.setColor(new Color(0,0,255));
+        //Atm
+        int atmSize = 300;
+        Point2D center = new Point2D.Float(0, 0);
+        float[]  dist = {0.0f, 0.5f, 0.75f, 1.0f};
+        Color[] colors = {new Color(255, 255, 255, 255), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0)};
+
+        RadialGradientPaint rgp = new RadialGradientPaint(center, (int) (atmSize * zoomSize), dist, colors);
+        g2.setPaint(rgp);
+        g2.fill(new Ellipse2D.Double((int) -(atmSize * zoomSize) / 2.0,(int) -(atmSize * zoomSize) / 2.0, (int) (atmSize * zoomSize), (int) (atmSize * zoomSize)));
+
+        //Oceans
+        g2.setColor(new Color(62, 137, 199));
         g2.fillOval((int) -(200 * zoomSize) / 2,(int) -(200 * zoomSize) / 2, (int) (200 * zoomSize), (int) (200 * zoomSize));
 
-        g2.setColor(new Color(255,255,255));
+        //Oceans Shading
+        dist = new float[]{0.0f, 0.5f, 0.9f,  1.0f};
+        colors = new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 175), new Color(0, 0, 0, 255), new Color(0, 0, 0, 255)};
+        //colors = new Color[]{new Color(255, 255, 255, 0), new Color(255, 255, 255, 175), new Color(255, 255, 255, 255), new Color(255, 255, 255, 255)};
+
+        rgp = new RadialGradientPaint(center, (int) (200 * zoomSize), dist, colors);
+        g2.setPaint(rgp);
+        g2.fill(new Ellipse2D.Double((int) -(200 * zoomSize) / 2.0,(int) -(200 * zoomSize) / 2.0, (int) (200 * zoomSize), (int) (200 * zoomSize)));
+
         //Triangle t : polygons
         for (int i = 0; i < countries.polygons.size(); i++){
-            for (Triangle t : countries.polygons.get(i).geoShape.triangles){
+            for (Triangle t : countries.polygons.get(i).geoShapes.get(0).triangles){
                 Vertex v1 = transform.transform(t.v1);
                 Vertex v2 = transform.transform(t.v2);
                 Vertex v3 = transform.transform(t.v3);
@@ -97,23 +109,41 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));
                 int maxY = (int) Math.min(getHeight() - 1, Math.floor(Math.max(v1.y, Math.max(v2.y, v3.y))));
 
-                for (int y = minY; y <= maxY; y++) {
-                    for (int x = minX; x <= maxX; x++) {
-                        Vertex p = new Vertex(x, y, 0);
+                double[][] zBufferBackup = zBuffer;
+                int max = 1;
+                for (int j = 0; j < max; j++) {
+                    if (j == 1) zBuffer = zBufferBackup;
+                    for (int y = minY; y <= maxY; y++) {
+                        for (int x = minX; x <= maxX; x++) {
+                            Vertex p = new Vertex(x, y, 0);
 
-                        boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
-                        boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
-                        boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
-                        if (V1 && V2 && V3){
-                            double depth = v1.z + v2.z + v3.z;
-                            if (zBuffer[x][y] < depth){
-                                g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
-                                g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
-                                zBuffer[x][y] = depth;
+                            boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
+                            boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
+                            boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
+                            if (V1 && V2 && V3){
+                                double depth = v1.z + v2.z + v3.z;
+                                if (zBuffer[x][y] < depth){
+                                    if (depth > 0){
+                                        if ((mouseX == x && mouseY == y) || max == 2) {
+                                            if (max == 1) {
+                                                max = 2;
+                                                break;
+                                            }
+                                            g2.setColor(new Color(255,0,0));
+                                        }
+                                        else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
+                                        g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
+                                    }
+                                    zBuffer[x][y] = depth;
+                                }
                             }
+                        }
+                        if (max == 2 && j == 0){
+                            break;
                         }
                     }
                 }
+
             }
         }
 
@@ -147,17 +177,19 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     @Override
     public void mouseDragged(MouseEvent e) {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-        double dpi = 0.03;
-        double xi = 180.0 / this.getWidth();
-        double yi = 180.0 / this.getHeight();
-        xAng = -(int) ((xCurrent - (e.getX())) * xi - xLastAng);
-        yAng = (int) ((yCurrent - (e.getY())) * yi + yLastAng);
+        double dpi = 0.07;
+        double xi = dpi / Math.max(2.5, zoomSize) * 8;
+        double yi = dpi / Math.max(2.5, zoomSize) * 8;
+        xAng = -((xCurrent - (e.getX())) * xi - xLastAng);
+        yAng = (yCurrent - (e.getY())) * yi + yLastAng;
         this.repaint();
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
-
+        mouseX = e.getX();
+        mouseY = e.getY();
+        repaint();
     }
 
     @Override
@@ -190,17 +222,12 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
-        zoomSize -= e.getWheelRotation() * 0.5;
-        zoomSize = Math.round(zoomSize * 100) / 100.0;
-        if (zoomSize < 0.1) zoomSize = 0.1;
+        double zoomDpi = 0.5;
+        zoomSize -= e.getWheelRotation() * zoomDpi * (zoomSize / 4);
+        zoomSize = Math.round(zoomSize * 10) / 10.0;
+        if (zoomSize < 0.5) zoomSize = 0.5;
         //if (zoomSize > 10) zoomSize = 10;
-        //slider.setValue((int) zoomSize);
         repaint();
     }
 
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        //zoomSize = slider.getValue();
-        //repaint();
-    }
 }

@@ -108,11 +108,6 @@ public class GeoPoly {
     public void loadGPStoCoordinates(double[][] gps){
         int resize = 1;
         for (double[] g : gps) {
-            /*double x = Math.sin(g[0]);
-            double y = Math.sin(g[1]);
-            double z = Math.cos(g[1]);
-            vertices.add(new Vertex(x * resize, y * resize, z * resize /10));*/
-
             double x = g[0] * resize;
             double y = g[1] * resize;
             double z = g[1] * resize;
@@ -122,44 +117,10 @@ public class GeoPoly {
 
     public Vertex gpsToSphere(Vertex gps){
         double resize = 100.0;
-        double x = Math.sin(Math.toRadians(gps.x));
-        double y = Math.sin(Math.toRadians(gps.y));
-        double z = Math.cos(Math.toRadians(gps.x)) * Math.cos(Math.toRadians(gps.y));
-
-        return new Vertex(x * resize, -y * resize, z * resize);
-        //return new Vertex(gps.x, -gps.y, -gps.z);
+        double x = resize * Math.cos(Math.toRadians(gps.y)) * Math.cos(Math.toRadians(gps.x));
+        double y = resize * Math.cos(Math.toRadians(gps.y)) * Math.sin(Math.toRadians(gps.x));
+        double z = resize * Math.sin(Math.toRadians(gps.y));
+        return new Vertex(y, -z, x);
     }
-
-    /*ArrayList<Vertex> sorted = new ArrayList<>();
-
-        int index = 0;
-        while (vertices.size() != 0) {
-            double vertex = vertices.get(index).x + vertices.get(index).y + vertices.get(index).z;
-            sorted.add(vertices.get(index));
-            vertices.remove(index);
-            double closest = Double.POSITIVE_INFINITY;
-            for (int i = 0; i < vertices.size(); i++) {
-                double current = vertices.get(i).x + vertices.get(i).y + vertices.get(i).z;
-                double result = Math.abs(current - vertex);
-                if (index == i) continue;
-                if (result < closest ) {
-                    closest = result;
-                    index = i;
-                }
-            }
-        }
-        Coordinate[] coordinates = new Coordinate[sorted.size() + 1];
-        for (int i = 0; i < sorted.size(); i++){
-            coordinates[i] = new Coordinate();
-            coordinates[i].setX(sorted.get(i).x);
-            coordinates[i].setY(sorted.get(i).y);
-            coordinates[i].setZ(sorted.get(i).z);
-        }
-        coordinates[sorted.size()] = coordinates[0];
-        vertices.addAll(sorted);
-
-        Geometry g = new GeometryFactory().createPolygon(coordinates);
-
-        return g;*/
 
 }

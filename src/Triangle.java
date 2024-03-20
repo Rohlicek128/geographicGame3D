@@ -15,7 +15,7 @@ public class Triangle {
     }
 
     public static Color getShadow(Color color, double shadow){
-        double gamma = 2.2;
+        double gamma = 1.5;
 
         double redLinear = Math.pow(color.getRed(), gamma) * shadow;
         double greenLinear = Math.pow(color.getGreen(), gamma) * shadow;
