@@ -1,19 +1,16 @@
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Random;
 
 public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
     ArrayList<Triangle> polygons;
     Countries countries;
+    boolean mouseHold;
     double xAng;
     double yAng;
     double xLastAng;
@@ -25,12 +22,21 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int mouseY;
     double zoomSize = 1;
 
+    Random random = new Random();
+    String randomCountry;
+    String mouseOnCountry;
+    int wrongAmount = 0;
+    int wrongMax = 4;
+    int rightCount = 0;
+
     public RenderPanel(ArrayList<Triangle> p) {
         this.polygons = p;
         this.countries = new Countries("world-administrative-boundaries.csv");
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.addMouseWheelListener(this);
+
+        randomCountry = countries.polygons.get(random.nextInt(countries.polygons.size())).name;
     }
 
     public void paintComponent(Graphics g){
@@ -39,9 +45,11 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.fillRect(0, 0, getWidth(), getHeight());
 
         double[][] zBuffer = new double[getWidth()][getHeight()];
+        double[][] zBufferBackup = new double[getWidth()][getHeight()];
         for (int x = 0; x < getWidth(); x++){
             for (int y = 0; y < getHeight(); y++){
                 zBuffer[x][y] = Double.NEGATIVE_INFINITY;
+                zBufferBackup[x][y] = Double.NEGATIVE_INFINITY;
             }
         }
 
@@ -84,8 +92,20 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.setPaint(rgp);
         g2.fill(new Ellipse2D.Double((int) -(200 * zoomSize) / 2.0,(int) -(200 * zoomSize) / 2.0, (int) (200 * zoomSize), (int) (200 * zoomSize)));
 
-        //Triangle t : polygons
-        for (int i = 0; i < countries.polygons.size(); i++){
+        boolean changeCursor = false;
+        boolean mouseInCountry = false;
+        int count = 0;
+        for (int i = 0; i < countries.polygons.size() + (mouseInCountry ? 1 : 0); i++){
+            if (mouseInCountry && count == i + 1){
+                i--;
+                mouseOnCountry = countries.polygons.get(i).name;
+                changeCursor = true;
+                zBuffer = zBufferBackup;
+            }
+            else mouseInCountry = false;
+
+            if (i >= countries.polygons.size()) break;
+
             for (Triangle t : countries.polygons.get(i).geoShapes.get(0).triangles){
                 Vertex v1 = transform.transform(t.v1);
                 Vertex v2 = transform.transform(t.v2);
@@ -109,67 +129,45 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));
                 int maxY = (int) Math.min(getHeight() - 1, Math.floor(Math.max(v1.y, Math.max(v2.y, v3.y))));
 
-                double[][] zBufferBackup = zBuffer;
-                int max = 1;
-                for (int j = 0; j < max; j++) {
-                    if (j == 1) zBuffer = zBufferBackup;
-                    for (int y = minY; y <= maxY; y++) {
-                        for (int x = minX; x <= maxX; x++) {
-                            Vertex p = new Vertex(x, y, 0);
+                for (int y = minY; y <= maxY; y++) {
+                    for (int x = minX; x <= maxX; x++) {
+                        Vertex p = new Vertex(x, y, 0);
 
-                            boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
-                            boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
-                            boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
-                            if (V1 && V2 && V3){
-                                double depth = v1.z + v2.z + v3.z;
-                                if (zBuffer[x][y] < depth){
-                                    if (depth > 0){
-                                        if ((mouseX == x && mouseY == y) || max == 2) {
-                                            if (max == 1) {
-                                                max = 2;
-                                                break;
-                                            }
-                                            g2.setColor(new Color(255,0,0));
-                                        }
-                                        else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
-                                        g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
+                        boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
+                        boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
+                        boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
+                        if (V1 && V2 && V3){
+                            double depth = v1.z + v2.z + v3.z;
+                            if (zBuffer[x][y] < depth){
+                                if (depth > 0){
+                                    if ((mouseX == x && mouseY == y) || mouseInCountry) {
+                                        mouseInCountry = true;
+                                        g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter());
+                                        //g2.setColor(new Color(255,0,0));
                                     }
-                                    zBuffer[x][y] = depth;
+                                    else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
+                                    g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
                                 }
+                                zBuffer[x][y] = depth;
                             }
-                        }
-                        if (max == 2 && j == 0){
-                            break;
                         }
                     }
                 }
-
             }
+            count++;
+            if (mouseInCountry) count++;
         }
 
-        /*for (int i = 0; i < countries.polygons.size(); i++) {
-            ArrayList<Vertex> vertices = countries.polygons.get(i).geoShape.vertices;
-            //if (countries.polygons.get(i).type.equalsIgnoreCase(" \"\"type\"\": \"\"MultiPolygon\"\"}\"")) continue;
-
-            g2.setColor(new Color(255,255,255));
-            Path2D path = new Path2D.Double();
-            double x = vertices.get(0).x * zoomSize;
-            double y = -vertices.get(0).y * zoomSize;
-            path.moveTo(x, y);
-            for (int j = 1; j < vertices.size(); j++) {
-                x = vertices.get(j).x * zoomSize;
-                y = -vertices.get(j).y * zoomSize;
-                path.lineTo(x, y);
-                //g2.setColor(new Color(255,255,255));
-                //g2.fillOval((int) ((int) v.x * zoomSize), (int) -((int) v.y * zoomSize), (int) Math.ceil(zoomSize * 2), (int) Math.ceil(zoomSize * 2));
-            }
-            path.closePath();
-            g2.draw(path);
-        }*/
+        if (changeCursor) this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        else if (!mouseHold) this.setCursor(Cursor.getDefaultCursor());
 
         g2.setColor(new Color(255,255,255));
         g2.setFont(new Font("Ariel", Font.BOLD, 20));
         g2.drawString("ZOOM: " + zoomSize + "x", -getWidth() / 3,getHeight() / 3);
+
+        g2.setColor(new Color(255,255,255));
+        g2.setFont(new Font("Ariel", Font.BOLD, 25));
+        g2.drawString("[R:" + rightCount + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
     }
 
 
@@ -177,6 +175,11 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     @Override
     public void mouseDragged(MouseEvent e) {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+        mouseHold = true;
+
+        mouseX = Integer.MIN_VALUE;
+        mouseY = Integer.MIN_VALUE;
+
         double dpi = 0.07;
         double xi = dpi / Math.max(2.5, zoomSize) * 8;
         double yi = dpi / Math.max(2.5, zoomSize) * 8;
@@ -194,7 +197,22 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     @Override
     public void mouseClicked(MouseEvent e) {
+        if (mouseOnCountry.equalsIgnoreCase(randomCountry) || wrongAmount == wrongMax){
+            rightCount++;
+            wrongAmount = 0;
 
+            String lastRandom = randomCountry;
+            do {
+                randomCountry = countries.polygons.get(random.nextInt(countries.polygons.size())).name;
+            }
+            while (randomCountry.equalsIgnoreCase(lastRandom));
+            System.out.println("Correct.");
+        }
+        else {
+            wrongAmount++;
+            System.out.println("Wrong.");
+        }
+        repaint();
     }
 
     @Override
@@ -206,6 +224,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     @Override
     public void mouseReleased(MouseEvent e) {
         this.setCursor(Cursor.getDefaultCursor());
+        mouseHold = false;
         xLastAng = xAng;
         yLastAng = yAng;
     }
@@ -226,7 +245,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         zoomSize -= e.getWheelRotation() * zoomDpi * (zoomSize / 4);
         zoomSize = Math.round(zoomSize * 10) / 10.0;
         if (zoomSize < 0.5) zoomSize = 0.5;
-        //if (zoomSize > 10) zoomSize = 10;
+        if (zoomSize > 500000) zoomSize = 500000;
         repaint();
     }
 

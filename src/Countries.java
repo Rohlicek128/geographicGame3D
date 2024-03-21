@@ -1,3 +1,7 @@
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -57,6 +61,8 @@ public class Countries {
     public void loadFromFile(String file){
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
+            JSONParser parser = new JSONParser();
+
             br.readLine();
             String s = "";
             while ((s = br.readLine()) != null){
@@ -67,6 +73,11 @@ public class Countries {
                         Double.parseDouble(geoPointSplit[0]),
                         Double.parseDouble(geoPointSplit[1])
                 };
+
+                /*Object obj = parser.parse(split[1]);
+                JSONObject jsonObject = (JSONObject) obj;
+
+                JSONArray jsonArray = (JSONArray) jsonObject.get("coordinates");*/
 
                 String p = split[1].replace("\"{\"\"coordinates\"\": [", "");
                 p = p.replace("[", "");
