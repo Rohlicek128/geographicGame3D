@@ -13,7 +13,7 @@ public class Renderer extends JFrame {
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
 
-        RenderPanel renderPanel = new RenderPanel(polygons);
+        RenderPanel renderPanel = new RenderPanel();
         pane.add(renderPanel, BorderLayout.CENTER);
 
         this.setTitle("Renderer3D");

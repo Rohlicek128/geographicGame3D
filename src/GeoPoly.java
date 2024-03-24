@@ -1,8 +1,11 @@
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
 
 public class GeoPoly {
@@ -18,7 +21,7 @@ public class GeoPoly {
     public GeoPoly(double[][] gps, Color color) {
         this.color = color;
         loadGPStoCoordinates(gps);
-        this.triangles = triangulation(verticesToGeometry(vertices), 0);
+        this.triangles = triangulation(verticesToGeometry(vertices), 1, 0);
     }
 
     public ArrayList<Triangle> geometryToVertices(Geometry g){
@@ -77,13 +80,28 @@ public class GeoPoly {
         return temp;
     }
 
-    public ArrayList<Triangle> triangulation(Geometry g, double tolerance){
+    public ArrayList<Triangle> triangulation(Geometry g, int nRefinements, double tolerance){
         DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
+        GeometryFactory gf = new GeometryFactory();
         builder.setSites(g);
         builder.setTolerance(tolerance);
 
-        Geometry triangulation = builder.getTriangles(new GeometryFactory());
-        //triangulation.buffer(0.0001 * 0.0001 * 0.0001);
+        Geometry triangulation = builder.getTriangles(gf);
+
+        //Refinements
+        HashSet<Coordinate> sites = new HashSet<>(Arrays.asList(triangulation.getCoordinates()));
+        for (int refinement = 0; refinement < nRefinements; refinement++) {
+            for (int i = 0; i < triangulation.getNumGeometries(); i++) {
+                Polygon triangle = (Polygon) triangulation.getGeometryN(i);
+
+                if (triangle.getArea() > 50) {
+                    sites.add(new Coordinate(triangle.getCentroid().getX(), triangle.getCentroid().getY()));
+                }
+            }
+            builder = new DelaunayTriangulationBuilder();
+            builder.setSites(sites);
+            triangulation = builder.getTriangles(gf);
+        }
 
         try {
             triangulation = triangulation.intersection(g.buffer(0.0001));

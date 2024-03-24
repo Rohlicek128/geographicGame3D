@@ -8,7 +8,6 @@ import java.util.Random;
 
 public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
-    ArrayList<Triangle> polygons;
     Countries countries;
     boolean mouseHold;
     double xAng;
@@ -29,14 +28,14 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int wrongMax = 4;
     int rightCount = 0;
 
-    public RenderPanel(ArrayList<Triangle> p) {
-        this.polygons = p;
+    public RenderPanel() {
         this.countries = new Countries("world-administrative-boundaries.csv");
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.addMouseWheelListener(this);
 
-        randomCountry = countries.polygons.get(random.nextInt(countries.polygons.size())).name;
+        this.randomCountry = "";
+        nextRandomName("");
     }
 
     public void paintComponent(Graphics g){
@@ -94,17 +93,22 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         boolean changeCursor = false;
         boolean mouseInCountry = false;
+        int lastIDi = 0;
         int count = 0;
         for (int i = 0; i < countries.polygons.size() + (mouseInCountry ? 1 : 0); i++){
+            if (i >= countries.polygons.size()) break;
+
             if (mouseInCountry && count == i + 1){
-                i--;
+                i = lastIDi;
                 mouseOnCountry = countries.polygons.get(i).name;
                 changeCursor = true;
                 zBuffer = zBufferBackup;
             }
-            else mouseInCountry = false;
+            else if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) {
+                mouseInCountry = false;
+            }
 
-            if (i >= countries.polygons.size()) break;
+            if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) lastIDi = i;
 
             for (Triangle t : countries.polygons.get(i).geoShapes.get(0).triangles){
                 Vertex v1 = transform.transform(t.v1);
@@ -158,7 +162,17 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             if (mouseInCountry) count++;
         }
 
-        if (changeCursor) this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        if (changeCursor) {
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            int fontSize = 20;
+            g2.setColor(new Color(0,0,0,100));
+            g2.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
+
+            g2.setColor(new Color(255,255,255));
+            g2.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
+            g2.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+        }
         else if (!mouseHold) this.setCursor(Cursor.getDefaultCursor());
 
         g2.setColor(new Color(255,255,255));
@@ -170,7 +184,19 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.drawString("[R:" + rightCount + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
     }
 
-
+    public void nextRandomName(String lastName){
+        int id;
+        do{
+            id = random.nextInt(256);
+            for (CountryPolygon c : countries.polygons){
+                if (c.id == id){
+                    randomCountry = c.name;
+                    break;
+                }
+            }
+        }
+        while (randomCountry.equalsIgnoreCase(lastName));
+    }
 
     @Override
     public void mouseDragged(MouseEvent e) {
@@ -201,11 +227,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             rightCount++;
             wrongAmount = 0;
 
-            String lastRandom = randomCountry;
-            do {
-                randomCountry = countries.polygons.get(random.nextInt(countries.polygons.size())).name;
-            }
-            while (randomCountry.equalsIgnoreCase(lastRandom));
+            nextRandomName(randomCountry);
+
             System.out.println("Correct.");
         }
         else {

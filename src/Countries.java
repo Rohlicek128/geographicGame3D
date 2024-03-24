@@ -1,7 +1,3 @@
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -33,35 +29,57 @@ public class Countries {
         return temp;
     }
 
-    /*public ArrayList<CountryPolygon> distilCountryData(List<String[]> data){
-        ArrayList<CountryPolygon> temp = new ArrayList<>();
-        for (String[] d : data) {
-            ArrayList<String> gpsArray = new ArrayList<>();
-            d[1] = d[1].replace("\"{\"\"coordinates\"\": ", "");
+    //"{""coordinates"": [[[77.88883000000004, 35.44156000000004], [77.91205000000008, 35.43726000000004], ...
+    public ArrayList<double[][]> stringToPolygons(String data){
+        data = data.replace("\"{\"\"coordinates\"\": ", "");
+        data = data.replace(", \"\"type\"\": \"\"Polygon\"\"}\"", "");
+        data = data.replace(", \"\"type\"\": \"\"MultiPolygon\"\"}\"", "");
 
+        char[] chars = data.toCharArray();
 
-            String name = d[5];
-            System.out.println(count + ". " + name);
-            count++;
+        ArrayList<StringBuilder> polyStrings = new ArrayList<>();
 
-            int randomNum = new Random().nextInt(230) + 256 - 230;
-            GeoPoly geoPoly = new GeoPoly(gps, new Color(randomNum, randomNum, randomNum));
-
-            String[] dgp = d[0].split(",");
-            double[] geoPoint = new double[]{
-                    Double.parseDouble(dgp[0]),
-                    Double.parseDouble(dgp[1])
-            };
-
-            temp.add(new CountryPolygon(name, geoPoly, geoPoint, type));
+        int polyCount = 0;
+        for (int i = 0; i < chars.length; i++) {
+            if (chars[i] == '[' && chars[i + 1] == '[' && chars[i + 2] == '['){
+                polyStrings.add(new StringBuilder());
+                for (int j = i + 1; j < chars.length; j++) {
+                    if (chars[j] == ']' && chars[j + 1] == ']' && chars[j + 2] == ']'){
+                        i = j + 3;
+                        break;
+                    }
+                    polyStrings.get(polyCount).append(chars[j]);
+                }
+                polyCount++;
+            }
         }
-        return temp;
-    }*/
+
+        ArrayList<double[][]> result = new ArrayList<>();
+        for (int i = 0; i < polyStrings.size(); i++) {
+            String temp = polyStrings.get(i).toString();
+            temp = temp.replace("[", "");
+            temp = temp.replace("]", "");
+            String[] tempSplit = temp.split(",");
+
+            double[][] tempGPS;
+            tempGPS = new double[tempSplit.length / 2][2];
+            for (int x = 0; x < tempSplit.length / 2; x++) {
+                for (int y = 0; y < 2; y++) {
+                    double num = Double.parseDouble(tempSplit[x * 2 + y]);
+                    if (num != 0.0){
+                        tempGPS[x][y] = num;
+                    }
+                }
+            }
+            result.add(tempGPS);
+        }
+        return result;
+    }
 
     public void loadFromFile(String file){
+        long startTimeLoadning = System.currentTimeMillis();
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
-            JSONParser parser = new JSONParser();
 
             br.readLine();
             String s = "";
@@ -74,47 +92,42 @@ public class Countries {
                         Double.parseDouble(geoPointSplit[1])
                 };
 
-                /*Object obj = parser.parse(split[1]);
-                JSONObject jsonObject = (JSONObject) obj;
+                ArrayList<double[][]> GPSs = stringToPolygons(split[1]);
+                String type = "";
+                if (GPSs.size() == 1) type = "Polygon";
+                else type = "MultiPolygon";
 
-                JSONArray jsonArray = (JSONArray) jsonObject.get("coordinates");*/
 
-                String p = split[1].replace("\"{\"\"coordinates\"\": [", "");
-                p = p.replace("[", "");
-                p = p.replace("]", "");
-                String[] pSplit = p.split(",");
-                double[][] gps;
-                gps = new double[pSplit.length / 2][2];
-                for (int i = 0; i < pSplit.length / 2; i++) {
-                    for (int j = 0; j < 2; j++) {
-                        double x = Double.parseDouble(pSplit[i * 2 + j]);
-                        if (x != 0.0){
-                            gps[i][j] = x;
-                        }
-                    }
-                }
-                String type = pSplit[pSplit.length - 1];
-                if (type.equalsIgnoreCase(" \"\"type\"\": \"\"MultiPolygon\"\"}\"")){
-                    //System.out.println("multi");
-                }
-                else {
+                int randomOffset = new Random().nextInt(55);
+                int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
+
+                int multiCount = 1;
+                for (double[][] gps : GPSs){
+                    long startTime = System.currentTimeMillis();
+                    GeoPoly geoPoly = new GeoPoly(gps, new Color(randomColor + randomOffset, randomColor + randomOffset, randomColor + randomOffset));
+                    long currentTime = System.currentTimeMillis() - startTime;
+
                     String name = split[5];
-                    System.out.println(count + ". " + name);
-                    count++;
+                    System.out.println(count + "-" + multiCount + ": " + name + " (" + currentTime + "ms)");
+                    multiCount++;
 
-                    int randomNum = new Random().nextInt(55);
-                    int red = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
-                    int green = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
-                    int blue = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
-                    GeoPoly geoPoly = new GeoPoly(gps, new Color(red + randomNum, green + randomNum, blue + randomNum));
-
-                    polygons.add(new CountryPolygon(name, geoPoly, geoPoint, type));
+                    polygons.add(new CountryPolygon(name, count - 1, geoPoly, geoPoint, type));
                 }
+                count++;
             }
         }
         catch (Exception e){
             e.printStackTrace();
         }
+        long currentTimeLoadning = System.currentTimeMillis() - startTimeLoadning;
+        int minutes = 0;
+        do {
+            currentTimeLoadning -= 60;
+            minutes++;
+        }
+        while (currentTimeLoadning >= 60);
+        currentTimeLoadning = Math.round(currentTimeLoadning / 100.0) / 10;
+        System.out.println("LOADING TIME: " + minutes + "m " + currentTimeLoadning + "s");
     }
 
 }
