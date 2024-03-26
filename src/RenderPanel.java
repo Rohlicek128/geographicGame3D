@@ -28,11 +28,12 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int wrongAmount = 0;
     int wrongMax = 4;
     int rightCount = 0;
+    int colorState = 0;
 
     Color[][] pixels;
 
     public RenderPanel() {
-        this.countries = new Countries("world-administrative-boundaries.csv");
+        this.countries = new Countries("world-administrative-boundaries-testSmall.csv");
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.addMouseWheelListener(this);
@@ -106,6 +107,13 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             if (mouseInCountry && count == i + 1){
                 i = lastIDi;
                 mouseOnCountry = countries.polygons.get(i).name;
+                countries.setPolygonsColor(switch (colorState){
+                    case 1 -> new Color(0,255,0);
+                    case -1 -> new Color(255,0,0);
+                    case 0 -> countries.polygons.get(i).geoShapes.color;
+                    default -> throw new IllegalStateException("Unexpected value: " + colorState);
+                }, countries.polygons.get(i).id);
+                colorState = 0;
                 changeCursor = true;
                 zBuffer = zBufferBackup;
             }
@@ -161,7 +169,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                                     if ((mouseX == x && mouseY == y) || mouseInCountry) {
                                         mouseInCountry = true;
                                         g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter());
-                                        //g2.setColor(new Color(255,0,0));
+                                        //g2.setColor(new Color(255,255,255));
                                     }
                                     else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
                                     g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
@@ -177,8 +185,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             if (mouseInCountry) count++;
         }
 
-        /*for (int y = 0; y <= getHeight() - 1; y++) {
-            for (int x = 0; x <= getWidth() - 1; x++) {
+        /*for (int y = 0; y < getHeight(); y++) {
+            for (int x = 0; x < getWidth(); x++) {
                 g2.setColor(pixels[x][y]);
                 g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
             }
@@ -258,6 +266,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         if (mouseOnCountry.equalsIgnoreCase(randomCountry) || wrongAmount == wrongMax){
             rightCount++;
             wrongAmount = 0;
+            colorState = 1;
 
             nextRandomName(randomCountry);
 
@@ -265,6 +274,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         }
         else {
             wrongAmount++;
+            colorState = -1;
             System.out.println("Wrong.");
         }
         repaint();

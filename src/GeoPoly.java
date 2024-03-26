@@ -24,6 +24,16 @@ public class GeoPoly {
         this.triangles = triangulation(verticesToGeometry(vertices), 1, 0);
     }
 
+    public Color getColor() {
+        return color;
+    }
+    public void setColor(Color color) {
+        this.color = color;
+        for (Triangle t : triangles){
+            t.color = color;
+        }
+    }
+
     public ArrayList<Triangle> geometryToVertices(Geometry g){
         ArrayList<Triangle> temp = new ArrayList<>();
         for (int i = 0; i < g.getNumGeometries(); i++) {

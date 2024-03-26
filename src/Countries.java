@@ -14,6 +14,14 @@ public class Countries {
         loadFromFile(file);
     }
 
+    public void setPolygonsColor(Color color, int id){
+        for (CountryPolygon p : polygons){
+            if (p.id == id){
+                p.geoShapes.setColor(color);
+            }
+        }
+    }
+
     public List<String[]> readData(String path){
         List<String[]> temp = new ArrayList<>();
         try {
