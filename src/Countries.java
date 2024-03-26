@@ -119,15 +119,14 @@ public class Countries {
         catch (Exception e){
             e.printStackTrace();
         }
-        long currentTimeLoadning = System.currentTimeMillis() - startTimeLoadning;
-        int minutes = 0;
-        do {
-            currentTimeLoadning -= 60;
-            minutes++;
-        }
-        while (currentTimeLoadning >= 60);
-        currentTimeLoadning = Math.round(currentTimeLoadning / 100.0) / 10;
-        System.out.println("LOADING TIME: " + minutes + "m " + currentTimeLoadning + "s");
+
+        //tf :skull:
+        long currentTimeLoading = System.currentTimeMillis() - startTimeLoadning;
+        currentTimeLoading = Math.round(currentTimeLoading / 100.0) / 10;
+        int minutes = (int) (currentTimeLoading / 60);
+        double seconds = currentTimeLoading - (minutes * 60L);
+
+        System.out.println("LOADING TIME: " + minutes + "m " + seconds + "s");
     }
 
 }
