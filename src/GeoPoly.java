@@ -21,7 +21,7 @@ public class GeoPoly {
     public GeoPoly(double[][] gps, Color color) {
         this.color = color;
         loadGPStoCoordinates(gps);
-        this.triangles = triangulation(verticesToGeometry(vertices), 1, 0);
+        this.triangles = triangulation(verticesToGeometry(vertices), 2, 0);
     }
 
     public Color getColor() {
@@ -143,12 +143,12 @@ public class GeoPoly {
         }
     }
 
-    public Vertex gpsToSphere(Vertex gps){
+    public static Vertex gpsToSphere(Vertex gps){
         double resize = 100.0;
-        double x = resize * Math.cos(Math.toRadians(gps.y)) * Math.cos(Math.toRadians(gps.x));
-        double y = resize * Math.cos(Math.toRadians(gps.y)) * Math.sin(Math.toRadians(gps.x));
-        double z = resize * Math.sin(Math.toRadians(gps.y));
-        return new Vertex(y, -z, x);
+        double x = resize * Math.cos(Math.toRadians(gps.y)) * Math.sin(Math.toRadians(gps.x));
+        double y = resize * Math.sin(Math.toRadians(gps.y));
+        double z = resize * Math.cos(Math.toRadians(gps.y)) * Math.cos(Math.toRadians(gps.x));
+        return new Vertex(x, -y, z);
     }
 
 }

@@ -5,10 +5,11 @@ import java.util.ArrayList;
 public class Renderer extends JFrame {
 
     ArrayList<Triangle> polygons = new ArrayList<>();
+    ImageIcon img = new ImageIcon("F:\\Nakoupené Rohlíky\\5head.png");
 
     public Renderer() {
         //defObjectPyramid();
-        defObjectSquare();
+        //defObjectSquare();
 
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
@@ -16,7 +17,8 @@ public class Renderer extends JFrame {
         RenderPanel renderPanel = new RenderPanel();
         pane.add(renderPanel, BorderLayout.CENTER);
 
-        this.setTitle("Renderer3D");
+        this.setTitle("Earth Game");
+        this.setIconImage(img.getImage());
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setSize(720, 720);
         this.setVisible(true);

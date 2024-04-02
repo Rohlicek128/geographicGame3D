@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -25,6 +26,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     Random random = new Random();
     String randomCountry;
     String mouseOnCountry;
+    int mouseOnCountryID;
     int wrongAmount = 0;
     int wrongMax = 4;
     int rightCount = 0;
@@ -33,7 +35,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     Color[][] pixels;
 
     public RenderPanel() {
-        this.countries = new Countries("world-administrative-boundaries-testSmall.csv");
+        this.countries = new Countries("world-administrative-boundaries.csv");
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.addMouseWheelListener(this);
@@ -107,12 +109,13 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             if (mouseInCountry && count == i + 1){
                 i = lastIDi;
                 mouseOnCountry = countries.polygons.get(i).name;
+                mouseOnCountryID = countries.polygons.get(i).id;
                 countries.setPolygonsColor(switch (colorState){
                     case 1 -> new Color(0,255,0);
                     case -1 -> new Color(255,0,0);
                     case 0 -> countries.polygons.get(i).geoShapes.color;
                     default -> throw new IllegalStateException("Unexpected value: " + colorState);
-                }, countries.polygons.get(i).id);
+                }, mouseOnCountryID);
                 colorState = 0;
                 changeCursor = true;
                 zBuffer = zBufferBackup;
@@ -169,10 +172,9 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                                     if ((mouseX == x && mouseY == y) || mouseInCountry) {
                                         mouseInCountry = true;
                                         g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter());
-                                        //g2.setColor(new Color(255,255,255));
                                     }
                                     else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
-                                    g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
+                                    g2.fillRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
                                 }
                                 zBuffer[x][y] = depth;
                             }
@@ -195,6 +197,26 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         if (changeCursor) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+            //Outline
+            for (CountryPolygon cp : countries.polygons){
+                if (cp.id == mouseOnCountryID){
+                    Path2D path = new Path2D.Double();
+                    Vertex v = GeoPoly.gpsToSphere(new Vertex(cp.geoShapes.vertices.get(0).x, cp.geoShapes.vertices.get(0).y, cp.geoShapes.vertices.get(0).z));
+                    v = transform.transform(v);
+                    path.moveTo(v.x * zoomSize, v.y * zoomSize);
+                    for (int i = 1; i < cp.geoShapes.vertices.size(); i++){
+                        v = GeoPoly.gpsToSphere(new Vertex(cp.geoShapes.vertices.get(i).x, cp.geoShapes.vertices.get(i).y, cp.geoShapes.vertices.get(i).z));
+                        v = transform.transform(v);
+                        path.lineTo(v.x * zoomSize, v.y * zoomSize);
+                    }
+                    path.closePath();
+                    g2.setColor(cp.geoShapes.getColor().brighter().brighter().brighter());
+                    g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g2.draw(path);
+                }
+            }
+
+            //Name Textbox
             int fontSize = 20;
             g2.setColor(new Color(0,0,0,100));
             g2.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
