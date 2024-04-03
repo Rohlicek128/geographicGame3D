@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Random;
 
-public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
+public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener, KeyListener {
 
     Countries countries;
     boolean mouseHold;
@@ -31,14 +31,24 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int wrongMax = 4;
     int rightCount = 0;
     int colorState = 0;
+    boolean view = false;
 
     Color[][] pixels;
+    Color primary;
+    Color secondary;
+    Color correctColor;
+    Color wrongColor;
 
-    public RenderPanel() {
-        this.countries = new Countries("world-administrative-boundaries.csv");
+    public RenderPanel(Color p, Color s) {
+        this.countries = new Countries("world-administrative-boundaries-testSmall.csv", false, s);
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.addMouseWheelListener(this);
+        this.addKeyListener(this);
+        this.setFocusable(true);
+
+        this.primary = p;
+        this.secondary = s;
 
         this.mouseOnCountry = "";
         this.randomCountry = "";
@@ -87,13 +97,13 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.fill(new Ellipse2D.Double((int) -(atmSize * zoomSize) / 2.0,(int) -(atmSize * zoomSize) / 2.0, (int) (atmSize * zoomSize), (int) (atmSize * zoomSize)));
 
         //Oceans
-        g2.setColor(new Color(62, 137, 199));
+        //g2.setColor(new Color(62, 137, 199));
+        g2.setColor(primary);
         g2.fillOval((int) -(200 * zoomSize) / 2,(int) -(200 * zoomSize) / 2, (int) (200 * zoomSize), (int) (200 * zoomSize));
 
         //Oceans Shading
         dist = new float[]{0.0f, 0.5f, 0.9f,  1.0f};
         colors = new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 175), new Color(0, 0, 0, 255), new Color(0, 0, 0, 255)};
-        //colors = new Color[]{new Color(255, 255, 255, 0), new Color(255, 255, 255, 175), new Color(255, 255, 255, 255), new Color(255, 255, 255, 255)};
 
         rgp = new RadialGradientPaint(center, (int) (200 * zoomSize), dist, colors);
         g2.setPaint(rgp);
@@ -111,8 +121,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 mouseOnCountry = countries.polygons.get(i).name;
                 mouseOnCountryID = countries.polygons.get(i).id;
                 countries.setPolygonsColor(switch (colorState){
-                    case 1 -> new Color(0,255,0);
-                    case -1 -> new Color(255,0,0);
+                    case 1 -> correctColor;
+                    case -1 -> wrongColor;
                     case 0 -> countries.polygons.get(i).geoShapes.color;
                     default -> throw new IllegalStateException("Unexpected value: " + colorState);
                 }, mouseOnCountryID);
@@ -217,13 +227,15 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             }
 
             //Name Textbox
-            int fontSize = 20;
-            g2.setColor(new Color(0,0,0,100));
-            g2.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
+            if (view){
+                int fontSize = 20;
+                g2.setColor(new Color(0,0,0,100));
+                g2.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
 
-            g2.setColor(new Color(255,255,255));
-            g2.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
-            g2.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+                g2.setColor(new Color(255,255,255));
+                g2.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
+                g2.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+            }
         }
         else if (!mouseHold) this.setCursor(Cursor.getDefaultCursor());
 
@@ -260,6 +272,22 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         while (randomCountry.equalsIgnoreCase(lastName));
     }
 
+    public void recolorCountries(Color c){
+        /*for (int i = 0; i < 256; i++) {
+            int plusID = 0;
+            while (countries.polygons.get(i + plusID))
+
+            int randomOffset = new Random().nextInt(55);
+            int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(countries.polygons.)) * 100));
+
+            int red = Math.max(0, Math.min(255, secondary.getRed() + randomColor - randomOffset));
+            int green = Math.max(0, Math.min(255, secondary.getGreen() + randomColor - randomOffset));
+            int blue = Math.max(0, Math.min(255, secondary.getBlue() + randomColor - randomOffset));
+
+            countries.setPolygonsColor();
+        }*/
+    }
+
     @Override
     public void mouseDragged(MouseEvent e) {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
@@ -292,12 +320,12 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
             nextRandomName(randomCountry);
 
-            System.out.println("Correct.");
+            System.out.println("Correct: " + mouseOnCountry.toUpperCase());
         }
         else {
             wrongAmount++;
             colorState = -1;
-            System.out.println("Wrong.");
+            System.out.println("Wrong: " + mouseOnCountry.toUpperCase());
         }
         repaint();
     }
@@ -336,54 +364,32 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         repaint();
     }
 
-    //Old
-    /*for (Triangle t : countries.polygons.get(i).geoShapes.get(0).triangles){
-        Vertex v1 = transform.transform(t.v1);
-        Vertex v2 = transform.transform(t.v2);
-        Vertex v3 = transform.transform(t.v3);
+    @Override
+    public void keyTyped(KeyEvent e) {
 
-        v1 = new Vertex(v1.x * zoomSize, v1.y * zoomSize, v1.z * zoomSize);
-        v2 = new Vertex(v2.x * zoomSize, v2.y * zoomSize, v2.z * zoomSize);
-        v3 = new Vertex(v3.x * zoomSize, v3.y * zoomSize, v3.z * zoomSize);
+    }
 
-        Vertex normal = Vertex.normalVector(v1, v2, v3);
-
-        v1.x += getWidth() / 2.0;
-        v1.y += getHeight() / 2.0;
-        v2.x += getWidth() / 2.0;
-        v2.y += getHeight() / 2.0;
-        v3.x += getWidth() / 2.0;
-        v3.y += getHeight() / 2.0;
-
-        int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
-        int maxX = (int) Math.min(getWidth() - 1, Math.floor(Math.max(v1.x, Math.max(v2.x, v3.x))));
-        int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));
-        int maxY = (int) Math.min(getHeight() - 1, Math.floor(Math.max(v1.y, Math.max(v2.y, v3.y))));
-
-        for (int y = minY; y <= maxY; y++) {
-            for (int x = minX; x <= maxX; x++) {
-                Vertex p = new Vertex(x, y, 0);
-
-                boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
-                boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
-                boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
-                if (V1 && V2 && V3){
-                    double depth = v1.z + v2.z + v3.z;
-                    if (zBuffer[x][y] < depth){
-                        if (depth > 0){
-                            if ((mouseX == x && mouseY == y) || mouseInCountry) {
-                                mouseInCountry = true;
-                                g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter());
-                                //g2.setColor(new Color(255,0,0));
-                            }
-                            else g2.setColor(Triangle.getShadow(t.color, Math.abs(normal.z)));
-                            g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
-                        }
-                        zBuffer[x][y] = depth;
-                    }
-                }
-            }
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_V) {
+            view = !view;
+            if (view) System.out.println("View: ENABLED");
+            else System.out.println("View: DISABLED");
         }
-    }*/
+        if(e.getKeyCode() == KeyEvent.VK_N) {
+            System.out.println("SKIPPED: " + randomCountry.toUpperCase());
+            nextRandomName(randomCountry);
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            System.exit(0);
+            return;
+        }
+        repaint();
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
 
 }

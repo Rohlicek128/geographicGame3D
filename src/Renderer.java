@@ -5,22 +5,22 @@ import java.util.ArrayList;
 public class Renderer extends JFrame {
 
     ArrayList<Triangle> polygons = new ArrayList<>();
-    ImageIcon img = new ImageIcon("F:\\Nakoupené Rohlíky\\5head.png");
+    ImageIcon img = new ImageIcon("icon1.png");
 
-    public Renderer() {
-        //defObjectPyramid();
-        //defObjectSquare();
-
+    public Renderer(Color p, Color s, Color c, Color w) {
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
 
-        RenderPanel renderPanel = new RenderPanel();
+        RenderPanel renderPanel = new RenderPanel(p, s);
+        renderPanel.correctColor = c;
+        renderPanel.wrongColor = w;
         pane.add(renderPanel, BorderLayout.CENTER);
 
         this.setTitle("Earth Game");
         this.setIconImage(img.getImage());
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setSize(720, 720);
+        this.setLocation(2560 / 2 - getWidth() / 2, 1440 / 2 - getHeight() / 2);
         this.setVisible(true);
     }
 

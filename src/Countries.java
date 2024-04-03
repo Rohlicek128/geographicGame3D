@@ -1,17 +1,26 @@
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-public class Countries {
+public class Countries implements Serializable {
 
     ArrayList<CountryPolygon> polygons = new ArrayList<>();
     int count = 1;
+    Color secondary;
 
-    public Countries(String file) {
-        loadFromFile(file);
+    public Countries(String file, boolean build, Color s) {
+        this.secondary = s;
+        long startTimeLoading = System.currentTimeMillis();
+
+        if (build) loadFromFile(file);
+        else readFromCache("cache.txt");
+
+        long currentTimeLoading = System.currentTimeMillis() - startTimeLoading;
+        currentTimeLoading = Math.round(currentTimeLoading / 100.0) / 10;
+        int minutes = (int) (currentTimeLoading / 60);
+        double seconds = currentTimeLoading - (minutes * 60L);
+        System.out.println("LOADING TIME: " + minutes + "m " + seconds + "s");
     }
 
     public void setPolygonsColor(Color color, int id){
@@ -20,21 +29,6 @@ public class Countries {
                 p.geoShapes.setColor(color);
             }
         }
-    }
-
-    public List<String[]> readData(String path){
-        List<String[]> temp = new ArrayList<>();
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(path));
-            String s = "";
-            while ((s = br.readLine()) != null){
-                temp.add(s.split(";"));
-            }
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        return temp;
     }
 
     //"{""coordinates"": [[[77.88883000000004, 35.44156000000004], [77.91205000000008, 35.43726000000004], ...
@@ -85,7 +79,7 @@ public class Countries {
     }
 
     public void loadFromFile(String file){
-        long startTimeLoadning = System.currentTimeMillis();
+
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
 
@@ -107,12 +101,17 @@ public class Countries {
 
 
                 int randomOffset = new Random().nextInt(55);
-                int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 200));
+                int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 100));
+
+                int red = Math.max(0, Math.min(255, secondary.getRed() + randomColor - randomOffset));
+                int green = Math.max(0, Math.min(255, secondary.getGreen() + randomColor - randomOffset));
+                int blue = Math.max(0, Math.min(255, secondary.getBlue() + randomColor - randomOffset));
+                int alpha = 255;
 
                 int multiCount = 1;
                 for (double[][] gps : GPSs){
                     long startTime = System.currentTimeMillis();
-                    GeoPoly geoPoly = new GeoPoly(gps, new Color(randomColor + randomOffset, randomColor + randomOffset, randomColor + randomOffset));
+                    GeoPoly geoPoly = new GeoPoly(gps, new Color(red, green, blue, alpha));
                     long currentTime = System.currentTimeMillis() - startTime;
 
                     String name = split[5];
@@ -128,13 +127,36 @@ public class Countries {
             e.printStackTrace();
         }
 
-        //tf :skull:
-        long currentTimeLoading = System.currentTimeMillis() - startTimeLoadning;
-        currentTimeLoading = Math.round(currentTimeLoading / 100.0) / 10;
-        int minutes = (int) (currentTimeLoading / 60);
-        double seconds = currentTimeLoading - (minutes * 60L);
+        //writeToCache("cache.txt");
+    }
 
-        System.out.println("LOADING TIME: " + minutes + "m " + seconds + "s");
+    public void writeToCache(String path){
+        try {
+            FileOutputStream file = new FileOutputStream(path);
+            ObjectOutputStream obj = new ObjectOutputStream(file);
+
+            obj.writeObject(this.polygons);
+            obj.flush();
+            obj.close();
+            System.out.println("SAVED TO CACHE.");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void readFromCache(String path){
+        try {
+            FileInputStream file = new FileInputStream(path);
+            ObjectInputStream obj = new ObjectInputStream(file);
+
+            this.polygons = (ArrayList<CountryPolygon>) obj.readObject();
+            obj.close();
+            System.out.println("READ FROM CACHE.");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 }

@@ -1,6 +1,7 @@
 import java.awt.*;
+import java.io.Serializable;
 
-public class Triangle {
+public class Triangle implements Serializable {
 
     Vertex v1;
     Vertex v2;

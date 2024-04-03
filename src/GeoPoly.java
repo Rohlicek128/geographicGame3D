@@ -3,12 +3,13 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
 
 import java.awt.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 
-public class GeoPoly {
+public class GeoPoly implements Serializable {
 
     ArrayList<Vertex> vertices = new ArrayList<>();
     ArrayList<Triangle> triangles = new ArrayList<>();

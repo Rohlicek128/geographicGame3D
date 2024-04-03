@@ -1,4 +1,6 @@
-public class Vertex {
+import java.io.Serializable;
+
+public class Vertex implements Serializable {
 
     double x;
     double y;
