@@ -16,6 +16,7 @@ public class Triangle implements Serializable {
     }
 
     public static Color getShadow(Color color, double shadow){
+        if (shadow < 0) shadow = 0;
         double gamma = 1.5;
 
         double redLinear = Math.pow(color.getRed(), gamma) * shadow;

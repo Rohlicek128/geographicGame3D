@@ -3,6 +3,8 @@ import java.awt.*;
 
 public class LoadingWindow extends JFrame {
 
+    Rectangle screenSize = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+
     public LoadingWindow(Color p, Color s) {
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
@@ -15,7 +17,8 @@ public class LoadingWindow extends JFrame {
         this.setSize(860, 230);
         this.setResizable(false);
         this.setUndecorated(true);
-        this.setLocation(2560 / 2 - getWidth() / 2, 1440 / 2 - getHeight() / 2);
+        this.setAlwaysOnTop(true);
+        this.setLocation(screenSize.width / 2 - getWidth() / 2, screenSize.height / 2 - getHeight() / 2);
         this.setVisible(true);
     }
 

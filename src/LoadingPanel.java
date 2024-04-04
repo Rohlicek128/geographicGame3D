@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
 
 public class LoadingPanel extends JPanel implements ActionListener {
 
@@ -17,6 +18,8 @@ public class LoadingPanel extends JPanel implements ActionListener {
     public LoadingPanel(Color p, Color s) {
         this.primary = p;
         this.secondary = s;
+
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
         Timer timer = new Timer(1000, this);
         timer.setRepeats(true);

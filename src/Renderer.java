@@ -1,32 +1,90 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.ArrayList;
 
-public class Renderer extends JFrame {
+public class Renderer extends JFrame implements KeyListener {
+    RenderPanel renderPanel;
 
-    ArrayList<Triangle> polygons = new ArrayList<>();
-    ImageIcon img = new ImageIcon("icon1.png");
+    ImageIcon img = new ImageIcon("icon2.png");
+    Rectangle screenSize = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+    boolean fullscreen = false;
+    Dimension lastWindowSize;
+    int[] lastWindowLocation;
 
     public Renderer(Color p, Color s, Color c, Color w) {
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
 
-        RenderPanel renderPanel = new RenderPanel(p, s);
+        this.renderPanel = new RenderPanel(p, s);
         renderPanel.correctColor = c;
         renderPanel.wrongColor = w;
         pane.add(renderPanel, BorderLayout.CENTER);
 
+        this.addKeyListener(this);
+        this.setFocusable(true);
+        this.lastWindowSize = new Dimension(720, 720);
+        this.lastWindowLocation = new int[]{screenSize.width / 2 - lastWindowSize.width / 2, screenSize.height / 2 - lastWindowSize.height / 2};
+
         this.setTitle("Earth Game");
         this.setIconImage(img.getImage());
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setSize(720, 720);
-        this.setLocation(2560 / 2 - getWidth() / 2, 1440 / 2 - getHeight() / 2);
+        this.setSize(this.lastWindowSize);
+        this.setLocation(this.lastWindowLocation[0], this.lastWindowLocation[1]);
         this.setVisible(true);
     }
 
+    @Override
+    public void keyTyped(KeyEvent e) {
 
+    }
 
-    public void defObjectSquare(){
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_V) {
+            renderPanel.view = !renderPanel.view;
+            if (renderPanel.view) System.out.println("View: ENABLED");
+            else System.out.println("View: DISABLED");
+        }
+        else if(e.getKeyCode() == KeyEvent.VK_N) {
+            System.out.println("SKIPPED: " + renderPanel.randomCountry.toUpperCase());
+            renderPanel.nextRandomName(renderPanel.randomCountry);
+        }
+        if(e.getKeyCode() == KeyEvent.VK_F11) {
+            fullscreen = !fullscreen;
+            if (fullscreen) {
+                lastWindowSize.setSize(getWidth(), getHeight());
+                lastWindowLocation[0] = getX();
+                lastWindowLocation[1] = getY();
+
+                this.setSize(screenSize.width, screenSize.height + 48);
+                this.setLocation(0, 0);
+                System.out.println("FULLSCREEN");
+            }
+            else {
+                this.setSize(lastWindowSize);
+                this.setLocation(lastWindowLocation[0], lastWindowLocation[1]);
+                System.out.println("WINDOW");
+            }
+            this.dispose();
+            this.setUndecorated(fullscreen);
+            this.setAlwaysOnTop(fullscreen);
+            this.setVisible(true);
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            System.exit(0);
+        }
+        renderPanel.repaint();
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
+}
+
+    /*public void defObjectSquare(){
         polygons.add(new Triangle(
                 new Vertex(-100, 100, 100),
                 new Vertex(-100, 100, -100),
@@ -118,59 +176,4 @@ public class Renderer extends JFrame {
                 new Vertex(100, -100, -100),
                 new Vertex(-100, -100, 100),
                 new Color(0,0,255)));
-    }
-}
-
-/*
-JPanel renderPanel = new JPanel() {
-            public void paintComponent(Graphics g){
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setColor(new Color(0,0,0));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                double heading = Math.toRadians(x);
-                Matrix3 headingTransform = new Matrix3(new double[][]{
-                        {Math.cos(heading), 0, -Math.sin(heading)},
-                        {0, 1, 0},
-                        {Math.sin(heading), 0, Math.cos(heading)}
-                });
-                double pitch = Math.toRadians(y);
-                Matrix3 pitchTransform = new Matrix3(new double[][]{
-                        {1, 0, 0},
-                        {0, Math.cos(pitch), Math.sin(pitch)},
-                        {0, -Math.sin(pitch), Math.cos(pitch)}
-                });
-                Matrix3 transform = headingTransform.multiply(pitchTransform);
-
-                g2.translate(getWidth() / 2, getHeight() / 2);
-                g.setColor(new Color(255,255,255));
-                for (Triangle t : pyramid){
-                    Vertex v1 = transform.transform(t.v1);
-                    Vertex v2 = transform.transform(t.v2);
-                    Vertex v3 = transform.transform(t.v3);
-
-                    Path2D path = new Path2D.Double();
-                    path.moveTo(t.v1.x, t.v1.y);
-                    path.lineTo(t.v2.x, t.v2.y);
-                    path.lineTo(t.v3.x, t.v3.y);
-                    path.closePath();
-                    g2.draw(path);
-                }
-            }
-        };
-        renderPanel.addMouseMotionListener(new MouseMotionListener() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                double xi = 180.0 / renderPanel.getWidth();
-                double yi = 180.0 / renderPanel.getHeight();
-                x = (int) (e.getX() * xi);
-                y = -(int) (e.getY() * yi);
-                renderPanel.repaint();
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {
-
-            }
-        });
- */
+    }*/
