@@ -79,7 +79,6 @@ public class Countries implements Serializable {
     }
 
     public void loadFromFile(String file){
-
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
 
