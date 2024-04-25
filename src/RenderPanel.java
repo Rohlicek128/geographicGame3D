@@ -1,3 +1,4 @@
+import javax.annotation.processing.Processor;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -52,8 +53,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public RenderPanel(Color p, Color s) {
         this.countries = new Countries("world-administrative-boundaries-testSmall.csv", false, s);
         this.dots.add(new Dot(new Vertex(35, 60,0), 1, new Color(253, 147, 25)));
-        this.dots.add(new Dot(new Vertex(0, 51, 0), 1, new Color(246, 8, 66)));
-        this.trajectories.add(new Trajectory(dots.get(0), dots.get(1), 50));
+        this.dots.add(new Dot(new Vertex(114.1, 22.4, 0), 1, new Color(246, 8, 66)));
+        this.trajectories.add(new Trajectory(dots.get(0), dots.get(1), 20));
 
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
@@ -136,6 +137,27 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g2.setPaint(rgp);
         g2.fill(new Ellipse2D.Double((int) -(EARTH_RADIUS * zoomSize) / 2.0,(int) -(EARTH_RADIUS * zoomSize) / 2.0, (int) (EARTH_RADIUS * zoomSize), (int) (EARTH_RADIUS * zoomSize)));
 
+        //Threads
+        /*boolean changeCursor = false;
+        BufferedImage img = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+
+        int coreCount = 4;
+        for (int i = 0; i < coreCount; i++) {
+            int startIndex = countries.polygons.size() / coreCount * i;
+            int endIndex = countries.polygons.size() / coreCount * (i + 1);
+
+            RenderThread renderThread = new RenderThread(startIndex, endIndex, countries, transform, zoomSize, getWidth(), getHeight(), mouseX, mouseY, zBuffer, g2, this);
+            renderThread.start();
+            //System.out.println(i + ". Thread finished");
+
+            if (renderThread.mouseInCountry) changeCursor = true;
+            //zBuffer = renderThread.zBuffer;
+            //g2.drawImage(renderThread.img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);
+            //img = addPixels(img, renderThread.img);
+        }
+        //g2.drawImage(img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);*/
+
+
         //Render Earth
         BufferedImage img = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
         boolean changeCursor = false;
@@ -164,15 +186,6 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             }
 
             if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) lastIDi = i;
-
-            //Threads
-            /*RenderThread renderThread = new RenderThread(countries.polygons.get(i).geoShapes.triangles, transform, zoomSize, getWidth(), getHeight(), mouseX, mouseY, mouseInCountry, zBuffer);
-            renderThread.start();
-            System.out.println(i + ". Thread finished");
-
-            mouseInCountry = renderThread.mouseInCountry;
-            zBuffer = renderThread.zBuffer;
-            addPixels(renderThread.pixels);*/
 
             for (Triangle t : countries.polygons.get(i).geoShapes.triangles){
                 //Vertex normal = Vertex.normalVector(t.v1, t.v2, t.v3);
@@ -255,6 +268,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 int size = (int) (Math.max(4, trajectory.start.size * zoomSize));
                 g2.setColor(trajectory.start.color);
                 g2.fillOval((int) (v.x - size/2), (int) (v.y - size/2), size, size);
+                /*double difC = RenderPanel.EARTH_RADIUS / 2.0 * zoomSize - Math.sqrt(v.x*v.x + v.y*v.y);
+                if (difC < 0 || v.z >= 0){
+
+                }*/
             }
         }
 
@@ -309,14 +326,15 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         frames++;
     }
 
-    public void addPixels(Color[][] others){
-        for (int i = 0; i < getWidth(); i++) {
-            for (int j = 0; j < getHeight(); j++) {
-                if (!Objects.equals(others[i][j], new Color(5, 200, 120))){
-                    pixels[i][j] = others[i][j];
+    public BufferedImage addPixels(BufferedImage img, BufferedImage other){
+        for (int x = 0; x < getWidth(); x++) {
+            for (int y = 0; y < getHeight(); y++) {
+                if (other != null){
+                    img.setRGB(x, y, other.getRGB(x, y));
                 }
             }
         }
+        return img;
     }
 
     public void nextRandomName(String lastName){
@@ -325,8 +343,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             id = random.nextInt(256);
             for (CountryPolygon c : countries.polygons){
                 if (c.id == id){
-                    randomCountry = c.name;
-                    break;
+                    if (c.geoPoint[0] >= 32.5 && c.geoPoint[0] <= 72.3 && c.geoPoint[1] >= -14.7 && c.geoPoint[1] <= 66.7){
+                        randomCountry = c.name;
+                        break;
+                    }
                 }
             }
         }

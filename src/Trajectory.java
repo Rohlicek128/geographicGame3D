@@ -27,16 +27,23 @@ public class Trajectory {
             double x = difX * ((double) s / numOfSegments);
             double y = difY * ((double) s / numOfSegments);
             double z = difZ * ((double) s / numOfSegments);
-            Vertex v = new Vertex(start.v.x + x, (start.v.y + y) * (Math.sin(Math.toRadians(s * ((double) 180 /numOfSegments))) * 0.5 + 1), start.v.z + z);
-            segments.add(v);
+            Vertex v = new Vertex(start.v.x + x, start.v.y + y, start.v.z + z);
+            segments.add(offsetVertexToSphere(v));
         }
     }
 
     public Vertex offsetVertexToSphere(Vertex v){
-        double c = Math.sqrt(v.x*v.x + v.y*v.y);
-        double difC = RenderPanel.EARTH_RADIUS / 2.0 - c;
+        double c = Math.sqrt(v.x * v.x + v.y*v.y);
+        double difRadius = RenderPanel.EARTH_RADIUS / 2.0 - c;
+        double ang = Math.atan(v.y / v.x);
 
-        return new Vertex(v.x, v.y - difC, v.z);
+        double x = v.x + Math.cos(Math.toRadians(ang)) * difRadius;
+        double y = v.y + Math.sin(Math.toRadians(ang)) * difRadius;
+        double z = v.z + Math.cos(Math.toRadians(ang)) * difRadius;
+
+        return new Vertex(x, y, v.z);
+
+
 
         /*double angXY = Math.atan2(v.y, v.x);
         double angXZ = Math.atan2(v.x, v.y);
