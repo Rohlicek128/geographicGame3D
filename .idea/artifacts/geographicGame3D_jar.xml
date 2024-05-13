@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="geographicGame3D:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/geographicGame3D_jar</output-path>
+    <root id="archive" name="geographicGame3D.jar">
+      <element id="module-output" name="geographicGame3D" />
+      <element id="library" level="application" name="java" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../!libraries/jts-core-1.19.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
