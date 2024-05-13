@@ -20,9 +20,10 @@ public class LoadingPanel extends JPanel implements ActionListener {
         this.secondary = s;
 
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        this.setVisible(true);
 
         Timer timer = new Timer(1000, this);
-        timer.setRepeats(true);
+        timer.setRepeats(this.isVisible());
         timer.start();
     }
 
@@ -64,7 +65,7 @@ public class LoadingPanel extends JPanel implements ActionListener {
             loadingText.replace(0, loadingText.length(), "LOADING");
         }
         else loadingText.append(".");
-        
+
         seconds++;
         StringBuilder temp = new StringBuilder("[");
         int progress = (int) Math.floor(((double) (seconds) / (double) (timeExpected)) * 10.0);
@@ -75,7 +76,7 @@ public class LoadingPanel extends JPanel implements ActionListener {
         temp.append("]");
 
         loadingBar = temp.toString();
-        
+
         repaint();
     }
 }

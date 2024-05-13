@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.util.ArrayList;
 
 public class Trajectory {
@@ -6,7 +5,7 @@ public class Trajectory {
     Dot start;
     Dot end;
     int numOfSegments;
-    ArrayList<Vertex> segments;
+    ArrayList<Dot> dotSegments;
 
     public Trajectory(Dot start, Dot end, int numOfSegments) {
         this.start = start;
@@ -17,41 +16,53 @@ public class Trajectory {
 
     //Segments from start dot to end dot
     public void setSegments(){
-        segments = new ArrayList<>();
+        dotSegments = new ArrayList<>();
+        Vertex sv = GeoPoly.gpsToSphere(end.v);
+        Vertex ev = GeoPoly.gpsToSphere(start.v);
 
         //distance from start to end
-        double difX = end.v.x - start.v.x;
-        double difY = end.v.y - start.v.y;
-        double difZ = end.v.z - start.v.z;
+        double difX = ev.x - sv.x;
+        double difY = ev.y - sv.y;
+        double difZ = ev.z - sv.z;
+        double pyth = Math.sqrt(difX*difX + difY*difY + difZ*difZ);
         for (int s = 0; s <= numOfSegments; s++) {
             double x = difX * ((double) s / numOfSegments);
             double y = difY * ((double) s / numOfSegments);
             double z = difZ * ((double) s / numOfSegments);
-            Vertex v = new Vertex(start.v.x + x, start.v.y + y, start.v.z + z);
-            segments.add(offsetVertexToSphere(v));
+            Vertex v = new Vertex(sv.x + x, sv.y + y, sv.z + z);
+            dotSegments.add(new Dot(offsetVertexToSphere(v, s, pyth), start.size, start.minSize, start.color));
         }
     }
 
-    public Vertex offsetVertexToSphere(Vertex v){
-        double c = Math.sqrt(v.x * v.x + v.y*v.y);
-        double difRadius = RenderPanel.EARTH_RADIUS / 2.0 - c;
-        double ang = Math.atan(v.y / v.x);
+    public Vertex offsetVertexToSphere(Vertex v, int s, double pyth){
+        double heightDiv = Math.pow(200 / pyth, Math.min(1.5, 220 / pyth));
+        //System.out.println(pyth + ", " + heightDiv);
 
-        double x = v.x + Math.cos(Math.toRadians(ang)) * difRadius;
-        double y = v.y + Math.sin(Math.toRadians(ang)) * difRadius;
-        double z = v.z + Math.cos(Math.toRadians(ang)) * difRadius;
+        double offset = (Math.sin(Math.toRadians(s * (180.0 / numOfSegments))) / heightDiv + 1);
+        double x = v.x * offset;
+        double y = v.y * offset;
+        double z = v.z * offset;
 
-        return new Vertex(x, y, v.z);
+        return new Vertex(x, y, z);
+    }
+
+    public Vertex generateDotOnGreatCircle(int s){
+        double difX = end.v.x - start.v.x;
+        double difY = end.v.y - start.v.y;
+        double difZ = end.v.z - start.v.z;
+
+        double radYX = Math.atan(difX / difY);
+        return null;
 
 
+        /*double difX = end.v.x - start.v.x;
+        double difY = end.v.y - start.v.y;
+        double difZ = end.v.z - start.v.z;
 
-        /*double angXY = Math.atan2(v.y, v.x);
-        double angXZ = Math.atan2(v.x, v.y);
+        double angXY = Math.atan(difY);
+        double angXZ = Math.atan(difX);
 
-        double x = RenderPanel.EARTH_RADIUS / 2.0 * Math.cos(angXY) * Math.sin(angXZ);
-        double y = RenderPanel.EARTH_RADIUS / 2.0 * Math.sin(angXY);
-        double z = RenderPanel.EARTH_RADIUS / 2.0 * Math.cos(angXY) * Math.cos(angXZ);
-        return new Vertex(x, y, z);*/
+        return  new Vertex(0,0,0);*/
     }
 
 }

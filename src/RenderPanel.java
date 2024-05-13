@@ -1,4 +1,3 @@
-import javax.annotation.processing.Processor;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -6,10 +5,11 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
@@ -17,7 +17,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     ArrayList<Dot> dots = new ArrayList<>();
     ArrayList<Trajectory> trajectories = new ArrayList<>();
 
-    static final int EARTH_RADIUS = 200;
+    static final int EARTH_DIAMETER = 200;
+    //Font courierPrimeBold = registerFont("resources/fonts/CourierPrime-Bold.ttf", "CourierPrime");
 
     boolean mouseHold;
     double xAng;
@@ -50,11 +51,22 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int frames = 0;
     int printFrames = 0;
 
+    GameAudio gameAudio;
+    boolean rocketShow = true;
+    int coreCount = 2;
+
     public RenderPanel(Color p, Color s) {
         this.countries = new Countries("world-administrative-boundaries-testSmall.csv", false, s);
-        this.dots.add(new Dot(new Vertex(35, 60,0), 1, new Color(253, 147, 25)));
-        this.dots.add(new Dot(new Vertex(114.1, 22.4, 0), 1, new Color(246, 8, 66)));
-        this.trajectories.add(new Trajectory(dots.get(0), dots.get(1), 20));
+        //this.dots.add(new Dot(new Vertex(1500, 0, 0), (int) (EARTH_DIAMETER / 4.0), 1, new Color(144, 144, 144))); //Moon
+
+        Dot startDot = new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192)); //Russia Silo
+        Dot endDot = new Dot(new Vertex(-73.941, 40.740, 0), 1, 6, new Color(246, 8, 66)); //New York
+        //Dot endDot = new Dot(new Vertex(-118.252, 34.056, 0), 1, 6, new Color(246, 8, 66)); //Los Angeles
+        //Dot endDot = new Dot(new Vertex(-0.125, 51.501, 0), 1, 6, new Color(246, 8, 66)); //London
+        //Dot endDot = new Dot(new Vertex(139.785, 35.675, 0), 1, 6, new Color(246, 8, 66)); //Tokyo
+        //Dot endDot = new Dot(new Vertex(18.519, -33.935, 0), 1, 6, new Color(246, 8, 66)); //Cape Town
+        this.trajectories.add(new Trajectory(startDot, endDot, 30));
+        this.trajectories.add(new RocketTrajectory(startDot, endDot, 120));
 
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
@@ -69,9 +81,23 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         this.randomCountry = "";
         nextRandomName("");
 
+        gameAudio = new GameAudio();
+        gameAudio.start();
+
+        AtomicBoolean nextSec = new AtomicBoolean(true);
         Timer fpsCounter = new Timer(1000, e -> {
             printFrames = frames;
             frames = 0;
+
+            rocketShow = !rocketShow;
+            RocketTrajectory rt = (RocketTrajectory) trajectories.get(1);
+
+            rt.updateRocket(rocketShow);
+            if (rt.currentSegment >= rt.numOfSegments && rocketShow) {
+                if (nextSec.get()) nextSec.set(false);
+                else endGame();
+            }
+            repaint();
         });
         fpsCounter.restart();
         fpsCounter.start();
@@ -84,20 +110,12 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         updating.start();
     }
 
-    public void paintComponent(Graphics g){
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(new Color(0,0,0));
-        g2.fillRect(0, 0, getWidth(), getHeight());
+    public void paintComponent(Graphics g1){
+        Graphics2D g = (Graphics2D) g1;
+        g.setColor(new Color(0,0,0));
+        g.fillRect(0, 0, getWidth(), getHeight());
 
         pixels = new Color[getWidth()][getHeight()];
-        double[][] zBuffer = new double[getWidth()][getHeight()];
-        double[][] zBufferBackup = new double[getWidth()][getHeight()];
-        for (int x = 0; x < getWidth(); x++){
-            for (int y = 0; y < getHeight(); y++){
-                zBuffer[x][y] = Double.NEGATIVE_INFINITY;
-                zBufferBackup[x][y] = Double.NEGATIVE_INFINITY;
-            }
-        }
 
         double heading = Math.toRadians(xAng);
         Matrix3 headingTransform = new Matrix3(new double[][]{
@@ -113,165 +131,102 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         });
         Matrix3 transform = headingTransform.multiply(pitchTransform);
 
-        g2.translate(getWidth() / 2, getHeight() / 2);
+        g.translate(getWidth() / 2, getHeight() / 2);
+
+        //FAX Machine Demo
+        /*int paperWidth = (int) (EARTH_DIAMETER * 4 * 0.7);
+        int paperHeight = (int) ((EARTH_DIAMETER * 2) * 0.25);
+        g.setColor(new Color(210, 207, 200));
+        g.fillRect(-paperWidth / 2, -getHeight() / 2, paperWidth, paperHeight);
+
+        g.setColor(new Color(18, 18, 18));
+        g.setFont(new Font("Courier Prime", Font.BOLD, 25));
+        g.drawString("Uhhhh, so like click there... uh", -paperWidth / 2 + 20, -getHeight() / 2 + 20);*/
 
         //Atm
-        int atmSize = EARTH_RADIUS * 3/2;
+        int atmSize = (int) ((EARTH_DIAMETER * 3/2) * zoomSize);
         Point2D center = new Point2D.Float(0, 0);
         float[]  dist = {0.0f, 0.5f, 0.75f, 1.0f};
         Color[] colors = {new Color(255, 255, 255, 255), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0)};
 
-        RadialGradientPaint rgp = new RadialGradientPaint(center, (int) (atmSize * zoomSize), dist, colors);
-        g2.setPaint(rgp);
-        g2.fill(new Ellipse2D.Double((int) -(atmSize * zoomSize) / 2.0,(int) -(atmSize * zoomSize) / 2.0, (int) (atmSize * zoomSize), (int) (atmSize * zoomSize)));
+        RadialGradientPaint rgp = new RadialGradientPaint(center, atmSize, dist, colors);
+        g.setPaint(rgp);
+        g.fill(new Ellipse2D.Double(-atmSize / 2.0,-atmSize / 2.0, atmSize, atmSize));
 
         //Oceans
-        g2.setColor(primary);
-        g2.fillOval((int) -(EARTH_RADIUS * zoomSize) / 2,(int) -(EARTH_RADIUS * zoomSize) / 2, (int) (EARTH_RADIUS * zoomSize), (int) (EARTH_RADIUS * zoomSize));
+        g.setColor(primary);
+        g.fillOval((int) -(EARTH_DIAMETER * zoomSize) / 2,(int) -(EARTH_DIAMETER * zoomSize) / 2, (int) (EARTH_DIAMETER * zoomSize), (int) (EARTH_DIAMETER * zoomSize));
 
         //Oceans Shading
         dist = new float[]{0.0f, 0.5f, 0.9f,  1.0f};
         colors = new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 175), new Color(0, 0, 0, 255), new Color(0, 0, 0, 255)};
 
-        rgp = new RadialGradientPaint(center, (int) (EARTH_RADIUS * zoomSize), dist, colors);
-        g2.setPaint(rgp);
-        g2.fill(new Ellipse2D.Double((int) -(EARTH_RADIUS * zoomSize) / 2.0,(int) -(EARTH_RADIUS * zoomSize) / 2.0, (int) (EARTH_RADIUS * zoomSize), (int) (EARTH_RADIUS * zoomSize)));
+        rgp = new RadialGradientPaint(center, (int) (EARTH_DIAMETER * zoomSize), dist, colors);
+        g.setPaint(rgp);
+        g.fill(new Ellipse2D.Double((int) -(EARTH_DIAMETER * zoomSize) / 2.0,(int) -(EARTH_DIAMETER * zoomSize) / 2.0, (int) (EARTH_DIAMETER * zoomSize), (int) (EARTH_DIAMETER * zoomSize)));
 
-        //Threads
-        /*boolean changeCursor = false;
+        //Thread Rendering
+        ArrayList<RenderThread> renderThreads = new ArrayList<>();
+        boolean changeCursor = false;
         BufferedImage img = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-
-        int coreCount = 4;
         for (int i = 0; i < coreCount; i++) {
             int startIndex = countries.polygons.size() / coreCount * i;
-            int endIndex = countries.polygons.size() / coreCount * (i + 1);
+            int endIndex = Math.min(countries.polygons.size(), countries.polygons.size() / coreCount * (i + 1) + 1);
 
-            RenderThread renderThread = new RenderThread(startIndex, endIndex, countries, transform, zoomSize, getWidth(), getHeight(), mouseX, mouseY, zBuffer, g2, this);
-            renderThread.start();
-            //System.out.println(i + ". Thread finished");
-
-            if (renderThread.mouseInCountry) changeCursor = true;
-            //zBuffer = renderThread.zBuffer;
-            //g2.drawImage(renderThread.img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);
-            //img = addPixels(img, renderThread.img);
+            renderThreads.add(new RenderThread(startIndex, endIndex, countries, transform, zoomSize, getWidth(), getHeight(), mouseX, mouseY, mouseOnCountryID));
+            renderThreads.get(i).start();
         }
-        //g2.drawImage(img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);*/
 
+        mouseOnCountryID = -1;
+        mouseOnCountry = "";
+        for (RenderThread rt : renderThreads){
+            try {
+                rt.join();
+                img = addPixels(img, rt.img);
 
-        //Render Earth
-        BufferedImage img = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-        boolean changeCursor = false;
-        boolean mouseInCountry = false;
-        int lastIDi = 0;
-        int count = 0;
-        for (int i = 0; i < countries.polygons.size() + (mouseInCountry ? 1 : 0); i++){
-            if (i >= countries.polygons.size()) break;
-
-            if (mouseInCountry && count == i + 1){
-                i = lastIDi;
-                mouseOnCountry = countries.polygons.get(i).name;
-                mouseOnCountryID = countries.polygons.get(i).id;
-                countries.setPolygonsColor(switch (colorState){
-                    case 1 -> correctColor;
-                    case -1 -> wrongColor;
-                    case 0 -> countries.polygons.get(i).geoShapes.color;
-                    default -> throw new IllegalStateException("Unexpected value: " + colorState);
-                }, mouseOnCountryID);
-                colorState = 0;
-                changeCursor = true;
-                zBuffer = zBufferBackup;
-            }
-            else if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) {
-                mouseInCountry = false;
-            }
-
-            if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) lastIDi = i;
-
-            for (Triangle t : countries.polygons.get(i).geoShapes.triangles){
-                //Vertex normal = Vertex.normalVector(t.v1, t.v2, t.v3);
-
-                Vertex v1 = transform.transform(t.v1);
-                Vertex v2 = transform.transform(t.v2);
-                Vertex v3 = transform.transform(t.v3);
-
-                v1 = new Vertex(v1.x * zoomSize, v1.y * zoomSize, v1.z * zoomSize);
-                v2 = new Vertex(v2.x * zoomSize, v2.y * zoomSize, v2.z * zoomSize);
-                v3 = new Vertex(v3.x * zoomSize, v3.y * zoomSize, v3.z * zoomSize);
-
-                Vertex normal = Vertex.normalVector(v1, v2, v3);
-
-                v1.x += getWidth() / 2.0;
-                v1.y += getHeight() / 2.0;
-                v2.x += getWidth() / 2.0;
-                v2.y += getHeight() / 2.0;
-                v3.x += getWidth() / 2.0;
-                v3.y += getHeight() / 2.0;
-
-                int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
-                int maxX = (int) Math.min(getWidth() - 1, Math.floor(Math.max(v1.x, Math.max(v2.x, v3.x))));
-                int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));
-                int maxY = (int) Math.min(getHeight() - 1, Math.floor(Math.max(v1.y, Math.max(v2.y, v3.y))));
-
-                for (int y = minY; y <= maxY; y++) {
-                    for (int x = minX; x <= maxX; x++) {
-                        Vertex p = new Vertex(x, y, 0);
-
-                        boolean V1 = Vertex.crossProduct(v1, v2, v3, p);
-                        boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
-                        boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
-                        if (V1 && V2 && V3){
-                            double depth = v1.z + v2.z + v3.z;
-                            if (zBuffer[x][y] < depth && depth > 0){
-                                if ((mouseX == x && mouseY == y) || mouseInCountry) {
-                                    mouseInCountry = true;
-                                    img.setRGB(x, y, Triangle.getShadow(t.color, normal.z).brighter().brighter().getRGB());
-                                }
-                                else img.setRGB(x, y, Triangle.getShadow(t.color, normal.z).getRGB());
-                                zBuffer[x][y] = depth;
-                            }
-                        }
-                    }
+                if (rt.changeCursor) changeCursor = true;
+                if (rt.mouseOnCountry != null) mouseOnCountry = rt.mouseOnCountry;
+                if (rt.mouseOnCountryID != -1) mouseOnCountryID = rt.mouseOnCountryID;
+                if (colorState != 0){
+                    countries.setPolygonsColor(switch (colorState){
+                        case 1 -> correctColor;
+                        case -1 -> wrongColor;
+                        default -> throw new IllegalStateException("Unexpected value: " + colorState);
+                    }, mouseOnCountryID);
                 }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-
-            count++;
-            if (mouseInCountry) count++;
         }
-        g2.drawImage(img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);
-        /*for (int y = 0; y < getHeight(); y++) {
-            for (int x = 0; x < getWidth(); x++) {
-                if (pixels[x][y] != null){
-                    g2.setColor(pixels[x][y]);
-                    g2.drawRect(x - (getWidth() / 2), y - (getHeight() / 2), 1, 1);
-                }
-            }
-        }*/
+        colorState = 0;
+        g.drawImage(img, -getWidth() / 2,-getHeight() / 2, getWidth(), getHeight(), this);
 
         //Render Dots
-        /*for (Dot dot : dots){
+        for (Dot dot : dots){
             Vertex v = transform.transform(dot.v);
             v = new Vertex(v.x * zoomSize, v.y * zoomSize, v.z * zoomSize);
-            if (v.z >= -1){
+
+            double difC = RenderPanel.EARTH_DIAMETER / 2.0 * zoomSize - Math.sqrt(v.x*v.x + v.y*v.y);
+            if (difC < 0 || v.z > 0){
                 int size = (int) (Math.max(4, dot.size * zoomSize));
 
-                g2.setColor(dot.color);
-                g2.fillOval((int) (v.x - size/2), (int) (v.y - size/2), size, size);
+                g.setColor(dot.color);
+                g.fillOval((int) (v.x - size/2), (int) (v.y - size/2), size, size);
             }
-        }*/
+        }
 
         //Render Trajectories
         for (Trajectory trajectory : trajectories){
-            for (Vertex v : trajectory.segments){
-                v = transform.transform(v);
+            for (Dot dot : trajectory.dotSegments){
+                Vertex v = transform.transform(dot.v);
                 v = new Vertex(v.x * zoomSize, v.y * zoomSize, v.z * zoomSize);
 
-                int size = (int) (Math.max(4, trajectory.start.size * zoomSize));
-                g2.setColor(trajectory.start.color);
-                g2.fillOval((int) (v.x - size/2), (int) (v.y - size/2), size, size);
-                /*double difC = RenderPanel.EARTH_RADIUS / 2.0 * zoomSize - Math.sqrt(v.x*v.x + v.y*v.y);
-                if (difC < 0 || v.z >= 0){
-
-                }*/
+                double difC = RenderPanel.EARTH_DIAMETER / 2.0 * zoomSize - Math.sqrt(v.x*v.x + v.y*v.y);
+                if ((difC < 0 || v.z > 0) && dot.color.getRGB() != 0){
+                    int size = (int) Math.max(dot.minSize, dot.size * zoomSize);
+                    g.setColor(dot.color);
+                    g.fillOval((int) v.x - size/2, (int) v.y- size/2, size, size);
+                }
             }
         }
 
@@ -291,37 +246,39 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                         path.lineTo(v.x * zoomSize, v.y * zoomSize);
                     }
                     path.closePath();
-                    g2.setColor(cp.geoShapes.getColor().brighter().brighter().brighter());
-                    g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                    g2.draw(path);
+                    g.setColor(cp.geoShapes.getColor().brighter().brighter().brighter());
+                    g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.draw(path);
                 }
             }
 
             //Name Textbox
             if (view){
-                int fontSize = 20;
-                g2.setColor(new Color(0,0,0,100));
-                g2.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
+                gameAudio.interrupt();
 
-                g2.setColor(new Color(255,255,255));
-                g2.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
-                g2.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+                int fontSize = 20;
+                g.setColor(new Color(0,0,0,100));
+                g.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
+
+                g.setColor(new Color(255,255,255));
+                g.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
+                g.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
             }
         }
         else if (!mouseHold) this.setCursor(Cursor.getDefaultCursor());
 
         //UI
-        g2.setColor(new Color(255,255,255));
-        g2.setFont(new Font("Ariel", Font.BOLD, 20));
-        g2.drawString("ZOOM: " + zoomSize + "x", -getWidth() / 3,getHeight() / 3);
+        g.setColor(new Color(255,255,255));
+        g.setFont(new Font("Ariel", Font.BOLD, 20));
+        g.drawString("ZOOM: " + zoomSize + "x", -getWidth() / 3,getHeight() / 3);
 
-        g2.setColor(new Color(255,255,255));
-        g2.setFont(new Font("Ariel", Font.BOLD, 25));
-        g2.drawString("[R:" + rightCount + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
+        g.setColor(new Color(255,255,255));
+        g.setFont(new Font("Ariel", Font.BOLD, 25));
+        g.drawString("[R:" + rightCount + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
 
-        g2.setColor(new Color(255,255,255));
-        g2.setFont(new Font("Ariel", Font.BOLD, 20));
-        g2.drawString(printFrames + " fps", -getWidth() / 2, -getHeight() / 2 + 20);
+        g.setColor(new Color(255,255,255));
+        g.setFont(new Font("Ariel", Font.BOLD, 20));
+        g.drawString(printFrames + " fps", -getWidth() / 2, -getHeight() / 2 + 20);
 
         frames++;
     }
@@ -329,7 +286,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public BufferedImage addPixels(BufferedImage img, BufferedImage other){
         for (int x = 0; x < getWidth(); x++) {
             for (int y = 0; y < getHeight(); y++) {
-                if (other != null){
+                if (other.getRGB(x, y) != 0){
                     img.setRGB(x, y, other.getRGB(x, y));
                 }
             }
@@ -343,10 +300,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             id = random.nextInt(256);
             for (CountryPolygon c : countries.polygons){
                 if (c.id == id){
-                    if (c.geoPoint[0] >= 32.5 && c.geoPoint[0] <= 72.3 && c.geoPoint[1] >= -14.7 && c.geoPoint[1] <= 66.7){
-                        randomCountry = c.name;
-                        break;
-                    }
+                    randomCountry = c.name;
+                    break;
+                    //if (c.geoPoint[0] >= 32.5 && c.geoPoint[0] <= 72.3 && c.geoPoint[1] >= -14.7 && c.geoPoint[1] <= 66.7){
+                    //}
                 }
             }
         }
@@ -369,6 +326,31 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
             countries.setPolygonsColor(new Color(red, green, blue), i);
         }
+    }
+
+    /*public static Font registerFont(String path, String name) {
+        try {
+            return Font.getFont(name);
+        }
+        catch (Exception ignored){
+        }
+
+        Font font = null;
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+
+            font = Font.createFont(Font.TRUETYPE_FONT, new File(path));
+            ge.registerFont(font);
+        } catch (IOException | FontFormatException e) {
+            System.out.println("Couldn't load font.");
+        }
+        return font;
+    }*/
+
+    public void endGame(){
+        gameAudio.interrupt();
+        this.setVisible(false);
+        this.removeAll();
     }
 
     @Override
@@ -396,9 +378,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        /*trajectories.get(0).end.v = new Vertex((e.getX() - (double) getWidth() / 2) / zoomSize, (e.getY() - (double) getHeight() / 2) / zoomSize, 0);
-        System.out.println(trajectories.get(0).end.v.x + ", " + trajectories.get(0).end.v.y);
-        trajectories.get(0).setSegments();*/
+        if (mouseOnCountry.equalsIgnoreCase("")) {
+            repaint();
+            return;
+        }
 
         if (mouseOnCountry.equalsIgnoreCase(randomCountry) || wrongAmount == wrongMax){
             rightCount++;
@@ -445,8 +428,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public void mouseWheelMoved(MouseWheelEvent e) {
         double zoomDpi = 0.5;
         zoomSize -= e.getWheelRotation() * zoomDpi * (zoomSize / 4);
-        zoomSize = Math.round(zoomSize * 10) / 10.0;
-        if (zoomSize < 0.25) zoomSize = 0.25;
+        zoomSize = Math.round(zoomSize * 1000) / 1000.0;
+        if (zoomSize < 0.1) zoomSize = 0.1;
         if (zoomSize > 500000) zoomSize = 500000;
         repaint();
     }

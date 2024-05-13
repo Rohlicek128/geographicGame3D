@@ -18,16 +18,12 @@ public class RenderThread extends Thread{
     int mouseX;
     int mouseY;
     boolean mouseInCountry;
-    double[][] zBuffer;
-    double[][] zBufferBackup;
     boolean changeCursor;
     String mouseOnCountry;
-    int mouseOnCountryID;
+    int mouseOnCountryID = -1;
+    int mouseOnCountryIDlast;
 
-    Graphics2D g2;
-    ImageObserver observer;
-
-    public RenderThread(int startIndex, int endIndex, Countries countries, Matrix3 transform, double zoomSize, int width, int height, int mouseX, int mouseY, double[][] zBuffer, Graphics2D g2, ImageObserver observer) {
+    public RenderThread(int startIndex, int endIndex, Countries countries, Matrix3 transform, double zoomSize, int width, int height, int mouseX, int mouseY, int mouseOnCountryID) {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
         this.countries = countries;
@@ -37,17 +33,8 @@ public class RenderThread extends Thread{
         this.height = height;
         this.mouseX = mouseX;
         this.mouseY = mouseY;
-        this.zBuffer = zBuffer;
 
-        this.g2 = g2;
-        this.observer = observer;
-
-        zBufferBackup = new double[width][height];
-        for (int x = 0; x < width; x++){
-            for (int y = 0; y < height; y++){
-                zBufferBackup[x][y] = Double.NEGATIVE_INFINITY;
-            }
-        }
+        this.mouseOnCountryIDlast = mouseOnCountryID;
     }
 
     @Override
@@ -55,29 +42,18 @@ public class RenderThread extends Thread{
         img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         changeCursor = false;
         mouseInCountry = false;
-        int lastIDi = 0;
-        int count = 0;
+        int lastIDi = startIndex;
+        int count = startIndex;
         for (int i = startIndex; i < endIndex + (mouseInCountry ? 1 : 0); i++){
-            //if (i >= countries.polygons.size()) break;
+            if (i >= countries.polygons.size() && count > i + 1) break;
 
             if (mouseInCountry && count == i + 1){
                 i = lastIDi;
                 mouseOnCountry = countries.polygons.get(i).name;
                 mouseOnCountryID = countries.polygons.get(i).id;
-                countries.setPolygonsColor(countries.polygons.get(i).geoShapes.color, mouseOnCountryID);
-                /*countries.setPolygonsColor(switch (colorState){
-                    case 1 -> correctColor;
-                    case -1 -> wrongColor;
-                    case 0 -> countries.polygons.get(i).geoShapes.color;
-                    default -> throw new IllegalStateException("Unexpected value: " + colorState);
-                }, mouseOnCountryID);*/
-                //colorState = 0;
                 changeCursor = true;
-                zBuffer = zBufferBackup;
             }
-            else if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) {
-                mouseInCountry = false;
-            }
+            else if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) mouseInCountry = false;
 
             if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) lastIDi = i;
 
@@ -85,6 +61,8 @@ public class RenderThread extends Thread{
                 Vertex v1 = transform.transform(t.v1);
                 Vertex v2 = transform.transform(t.v2);
                 Vertex v3 = transform.transform(t.v3);
+
+                if (v1.z + v2.z + v3.z <= 0) continue;
 
                 v1 = new Vertex(v1.x * zoomSize, v1.y * zoomSize, v1.z * zoomSize);
                 v2 = new Vertex(v2.x * zoomSize, v2.y * zoomSize, v2.z * zoomSize);
@@ -112,22 +90,16 @@ public class RenderThread extends Thread{
                         boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
                         boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
                         if (V1 && V2 && V3){
-                            double depth = v1.z + v2.z + v3.z;
-                            if (zBuffer[x][y] < depth){
-                                if (depth > 0){
-                                    if ((mouseX == x && mouseY == y) || mouseInCountry) {
-                                        mouseInCountry = true;
-                                        img.setRGB(x, y, Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter().getRGB());
-                                    }
-                                    else img.setRGB(x, y,  Triangle.getShadow(t.color, Math.abs(normal.z)).getRGB());
-                                }
-                                zBuffer[x][y] = depth;
+                            //if (mouseOnCountryIDlast == countries.polygons.get(i).id)
+                            if ((mouseX == x && mouseY == y) || mouseInCountry) {
+                                mouseInCountry = true;
+                                img.setRGB(x, y, Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter().getRGB());
                             }
+                            else img.setRGB(x, y,  Triangle.getShadow(t.color, Math.abs(normal.z)).getRGB());
                         }
                     }
                 }
             }
-
             count++;
             if (mouseInCountry) count++;
         }
@@ -137,7 +109,7 @@ public class RenderThread extends Thread{
                 img.setRGB(x, y, new Color(0, 255, 0).getRGB());
             }
         }*/
-        g2.drawImage(img, -width / 2,-height / 2, width, height, observer);
+        //g2.drawImage(img, -width / 2,-height / 2, width, height, observer);
 
     }
 

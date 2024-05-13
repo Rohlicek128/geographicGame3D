@@ -8,9 +8,10 @@ public class Main {
         Color wrong = new Color(193, 1, 47);
 
         LoadingWindow loadingWindow = new LoadingWindow(secondary, primary);
-        Renderer renderer = new Renderer(secondary, primary, correct, wrong);
+        new Renderer(secondary, primary, correct, wrong);
 
         loadingWindow.setVisible(false);
+        loadingWindow.loadingPanel.setVisible(false);
         loadingWindow.dispose();
     }
 }

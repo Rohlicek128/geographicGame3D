@@ -3,12 +3,14 @@ import java.awt.*;
 public class Dot {
 
     Vertex v;
-    double size;
+    int size;
+    int minSize;
     Color color;
 
-    public Dot(Vertex v, double size, Color color) {
-        this.v = GeoPoly.gpsToSphere(v);
+    public Dot(Vertex v, int size, int minSize, Color color) {
+        this.v = v;
         this.size = size;
+        this.minSize = minSize;
         this.color = color;
     }
 
