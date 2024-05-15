@@ -1,12 +1,13 @@
 import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.Random;
 
 public class Countries implements Serializable {
 
     ArrayList<CountryPolygon> polygons = new ArrayList<>();
-    int count = 1;
+    int count = 0;
     Color secondary;
 
     public Countries(String file, boolean build, Color s) {
@@ -94,10 +95,10 @@ public class Countries implements Serializable {
                 };
 
                 ArrayList<double[][]> GPSs = stringToPolygons(split[1]);
-                String type = "";
-                if (GPSs.size() == 1) type = "Polygon";
-                else type = "MultiPolygon";
 
+                String name = split[5];
+                String continent = split[6];
+                String region = split[7];
 
                 int randomOffset = new Random().nextInt(55);
                 int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 100));
@@ -113,11 +114,10 @@ public class Countries implements Serializable {
                     GeoPoly geoPoly = new GeoPoly(gps, new Color(red, green, blue, alpha));
                     long currentTime = System.currentTimeMillis() - startTime;
 
-                    String name = split[5];
-                    System.out.println(count + "-" + multiCount + ": " + name + " (" + currentTime + "ms)");
+                    System.out.println((count + 1) + "-" + multiCount + ": " + name + " (" + currentTime + "ms)");
                     multiCount++;
 
-                    polygons.add(new CountryPolygon(name, count - 1, geoPoly, geoPoint, type));
+                    polygons.add(new CountryPolygon(name, count, geoPoly, geoPoint, continent, region));
                 }
                 count++;
             }
@@ -126,7 +126,7 @@ public class Countries implements Serializable {
             e.printStackTrace();
         }
 
-        //writeToCache("cache.txt");
+        writeToCache("cache.txt");
     }
 
     public void writeToCache(String path){
@@ -156,6 +156,15 @@ public class Countries implements Serializable {
         catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public CountryPolygon findByName(String name){
+        for (CountryPolygon cp : polygons){
+            if (cp.name.equalsIgnoreCase(name)){
+                return cp;
+            }
+        }
+        throw new InputMismatchException();
     }
 
 }

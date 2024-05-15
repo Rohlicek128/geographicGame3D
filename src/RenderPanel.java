@@ -42,7 +42,6 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int colorState = 0;
     boolean view = false;
 
-    Color[][] pixels;
     Color primary;
     Color secondary;
     Color correctColor;
@@ -56,7 +55,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int coreCount = 2;
 
     public RenderPanel(Color p, Color s) {
-        this.countries = new Countries("world-administrative-boundaries-testSmall.csv", false, s);
+        this.countries = new Countries("world-administrative-boundaries.csv", false, s);
         //this.dots.add(new Dot(new Vertex(1500, 0, 0), (int) (EARTH_DIAMETER / 4.0), 1, new Color(144, 144, 144))); //Moon
 
         Dot startDot = new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192)); //Russia Silo
@@ -112,11 +111,12 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     public void paintComponent(Graphics g1){
         Graphics2D g = (Graphics2D) g1;
-        g.setColor(new Color(0,0,0));
+
+        //Fill Background
+        g.setColor(new Color(0, 0, 0));
         g.fillRect(0, 0, getWidth(), getHeight());
 
-        pixels = new Color[getWidth()][getHeight()];
-
+        //Transform
         double heading = Math.toRadians(xAng);
         Matrix3 headingTransform = new Matrix3(new double[][]{
                 {Math.cos(heading), 0, -Math.sin(heading)},
@@ -131,6 +131,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         });
         Matrix3 transform = headingTransform.multiply(pitchTransform);
 
+        //Translate to center of the screen
         g.translate(getWidth() / 2, getHeight() / 2);
 
         //FAX Machine Demo
@@ -141,10 +142,14 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         g.setColor(new Color(18, 18, 18));
         g.setFont(new Font("Courier Prime", Font.BOLD, 25));
-        g.drawString("Uhhhh, so like click there... uh", -paperWidth / 2 + 20, -getHeight() / 2 + 20);*/
+        g.drawString("Uhhhh, so like click there... uh", -paperWidth / 2 + 20, -getHeight() / 2 + 20);
+        int textHeight = getHeight() - 400;
+        g.setColor(new Color(18, 18, 18));
+        g.setFont(new Font("Courier Prime", Font.BOLD, textHeight));
+        g.drawString("4/7", -textHeight + 200, textHeight / 4);*/
 
         //Atm
-        int atmSize = (int) ((EARTH_DIAMETER * 3/2) * zoomSize);
+        int atmSize = (int) ((EARTH_DIAMETER * 4/3) * zoomSize);
         Point2D center = new Point2D.Float(0, 0);
         float[]  dist = {0.0f, 0.5f, 0.75f, 1.0f};
         Color[] colors = {new Color(255, 255, 255, 255), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0)};
@@ -230,6 +235,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             }
         }
 
+        //If mouse is on a country
         if (changeCursor) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -255,14 +261,19 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             //Name Textbox
             if (view){
                 gameAudio.interrupt();
+                CountryPolygon country = countries.findByName(mouseOnCountry);
 
                 int fontSize = 20;
                 g.setColor(new Color(0,0,0,100));
-                g.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, mouseOnCountry.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
+                g.fillRect((mouseX - getWidth() / 2) - (fontSize * 2 / 5), (mouseY - getHeight() / 2) - fontSize, country.name.length() * fontSize*3/5 + (fontSize * 4 / 5), fontSize*7/5);
 
                 g.setColor(new Color(255,255,255));
                 g.setFont(new Font("Courier Prime", Font.BOLD, fontSize));
-                g.drawString(mouseOnCountry, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+                g.drawString(country.name, mouseX - getWidth() / 2,mouseY - getHeight() / 2);
+
+                g.setFont(new Font("Courier Prime", Font.BOLD, (int) (fontSize / 1.5)));
+                g.drawString(country.continent, mouseX - getWidth() / 2, (int) (mouseY - getHeight() / 2 - fontSize * 1.75));
+                g.drawString(country.region, mouseX - getWidth() / 2, (int) (mouseY - getHeight() / 2 - fontSize * 1.1));
             }
         }
         else if (!mouseHold) this.setCursor(Cursor.getDefaultCursor());
@@ -311,10 +322,15 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     }
 
     public void recolorCountries(Color c){
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i <= countries.polygons.get(countries.polygons.size() - 1).id; i++) {
             int plusID = 0;
-            while (countries.polygons.get(i + plusID).id != i){
-                plusID++;
+            try {
+                while (countries.polygons.get(i + plusID).id != i){
+                    plusID++;
+                }
+            }
+            catch (Exception e){
+                plusID--;
             }
 
             int randomOffset = new Random().nextInt(25);

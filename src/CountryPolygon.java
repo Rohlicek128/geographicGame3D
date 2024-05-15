@@ -8,14 +8,16 @@ public class CountryPolygon implements Serializable {
     int id;
     GeoPoly geoShapes;
     double[] geoPoint;
-    String type;
+    String continent;
+    String region;
 
-    public CountryPolygon(String name, int id, GeoPoly geoShape, double[] geoPoint, String type) {
+    public CountryPolygon(String name, int id, GeoPoly geoShape, double[] geoPoint, String continent, String region) {
         this.name = name;
         this.id = id;
         this.geoShapes = geoShape;
         this.geoPoint = geoPoint;
-        this.type = type;
+        this.continent = continent;
+        this.region = region;
     }
 
 }

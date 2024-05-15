@@ -7,7 +7,7 @@ public class RocketTrajectory extends Trajectory{
     int flightDuration;
 
     public RocketTrajectory(Dot start, Dot end, int flightDuration) {
-        super(start, end, 1500);
+        super(start, end, Math.max(1500, flightDuration));
         this.flightDuration = flightDuration;
 
         Collections.reverse(dotSegments);
