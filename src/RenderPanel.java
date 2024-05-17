@@ -59,17 +59,17 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     public RenderPanel(Color p, Color s) {
         this.countries = new Countries("world-administrative-boundaries.csv", false, s);
-        this.continentsState = new ContinentsState(200, 3);
-        //this.dots.add(new Dot(new Vertex(1500, 0, 0), (int) (EARTH_DIAMETER / 4.0), 1, new Color(144, 144, 144))); //Moon
+        this.continentsState = new ContinentsState(500, 15, countries);
+        this.dots.add(new Dot(new Vertex(1500, 0, 0), (int) (EARTH_DIAMETER / 4.0), 1, new Color(144, 144, 144))); //Moon
 
-        Dot startDot = new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192)); //Russia Silo
+        Dot startDot = new Dot(new Vertex(45.755, 51.813,0), 1, 1, new Color(255, 255, 255, 192)); //Russia Silo
         Dot endDot = new Dot(new Vertex(-73.941, 40.740, 0), 1, 6, new Color(246, 8, 66)); //New York
         //Dot endDot = new Dot(new Vertex(-118.252, 34.056, 0), 1, 6, new Color(246, 8, 66)); //Los Angeles
         //Dot endDot = new Dot(new Vertex(-0.125, 51.501, 0), 1, 6, new Color(246, 8, 66)); //London
         //Dot endDot = new Dot(new Vertex(139.785, 35.675, 0), 1, 6, new Color(246, 8, 66)); //Tokyo
         //Dot endDot = new Dot(new Vertex(18.519, -33.935, 0), 1, 6, new Color(246, 8, 66)); //Cape Town
         this.trajectories.add(new Trajectory(startDot, endDot, 30));
-        this.trajectories.add(new RocketTrajectory(startDot, endDot, 300));
+        this.trajectories.add(new RocketTrajectory(startDot, endDot, 180));
 
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
@@ -89,6 +89,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         AtomicBoolean nextSec = new AtomicBoolean(true);
         Timer fpsCounter = new Timer(1000, e -> {
+            if (continentsState.currentIndex == continentsState.orderedContinents.size()) endGame();
+
             printFrames = frames;
             frames = 0;
 
@@ -289,7 +291,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         g.setColor(new Color(255,255,255));
         g.setFont(new Font("Ariel", Font.BOLD, 25));
-        g.drawString("[R:" + rightCount + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
+        g.drawString("[R:" + continentsState.correctCount + "/" + continentsState.getCurrentCorrectMax() + "] Click on " + randomCountry.toUpperCase() + " [W:" + wrongAmount + "/" + wrongMax + "]", -getWidth() / 3, (getHeight() / 2) - (getHeight() / 10));
 
         g.setColor(new Color(255,255,255));
         g.setFont(new Font("Ariel", Font.BOLD, 20));
@@ -314,7 +316,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         do{
             boolean skip = false;
 
-            id = random.nextInt(countries.polygons.get(countries.polygons.size() - 1).id);
+            id = random.nextInt(countries.polygons.get(countries.polygons.size() - 1).id + 1);
             for (int i : guessedCountries){
                 if (id == i){
                     skip = true;
@@ -412,7 +414,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             return;
         }
 
-        if (mouseOnCountry.equalsIgnoreCase(randomCountry) || wrongAmount == wrongMax){
+        if (mouseOnCountry.equalsIgnoreCase(randomCountry)){
             rightCount++;
             continentsState.correctCount++;
             wrongAmount = 0;
