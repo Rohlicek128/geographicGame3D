@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class RenderPanel extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
     Countries countries;
+    ArrayList<Integer> guessedCountries = new ArrayList<>();
+    ContinentsState continentsState;
+
     ArrayList<Dot> dots = new ArrayList<>();
     ArrayList<Trajectory> trajectories = new ArrayList<>();
 
@@ -56,6 +59,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     public RenderPanel(Color p, Color s) {
         this.countries = new Countries("world-administrative-boundaries.csv", false, s);
+        this.continentsState = new ContinentsState(200, 3);
         //this.dots.add(new Dot(new Vertex(1500, 0, 0), (int) (EARTH_DIAMETER / 4.0), 1, new Color(144, 144, 144))); //Moon
 
         Dot startDot = new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192)); //Russia Silo
@@ -65,7 +69,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         //Dot endDot = new Dot(new Vertex(139.785, 35.675, 0), 1, 6, new Color(246, 8, 66)); //Tokyo
         //Dot endDot = new Dot(new Vertex(18.519, -33.935, 0), 1, 6, new Color(246, 8, 66)); //Cape Town
         this.trajectories.add(new Trajectory(startDot, endDot, 30));
-        this.trajectories.add(new RocketTrajectory(startDot, endDot, 120));
+        this.trajectories.add(new RocketTrajectory(startDot, endDot, 300));
 
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
@@ -308,13 +312,22 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public void nextRandomName(String lastName){
         int id;
         do{
-            id = random.nextInt(256);
-            for (CountryPolygon c : countries.polygons){
-                if (c.id == id){
-                    randomCountry = c.name;
+            boolean skip = false;
+
+            id = random.nextInt(countries.polygons.get(countries.polygons.size() - 1).id);
+            for (int i : guessedCountries){
+                if (id == i){
+                    skip = true;
                     break;
-                    //if (c.geoPoint[0] >= 32.5 && c.geoPoint[0] <= 72.3 && c.geoPoint[1] >= -14.7 && c.geoPoint[1] <= 66.7){
-                    //}
+                }
+            }
+
+            if (!skip){
+                for (CountryPolygon c : countries.polygons){
+                    if (c.id == id && continentsState.equalsCurrentContinent(c)){
+                        randomCountry = c.name;
+                        break;
+                    }
                 }
             }
         }
@@ -401,8 +414,11 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         if (mouseOnCountry.equalsIgnoreCase(randomCountry) || wrongAmount == wrongMax){
             rightCount++;
+            continentsState.correctCount++;
             wrongAmount = 0;
             colorState = 1;
+
+            guessedCountries.add(countries.findByName(mouseOnCountry).id);
 
             nextRandomName(randomCountry);
 
