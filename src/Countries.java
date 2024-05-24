@@ -2,6 +2,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
+import java.util.Objects;
 import java.util.Random;
 
 public class Countries implements Serializable {
@@ -10,12 +11,15 @@ public class Countries implements Serializable {
     int count = 0;
     Color secondary;
 
+    String buildPath;
+
     public Countries(String file, boolean build, Color s) {
         this.secondary = s;
         long startTimeLoading = System.currentTimeMillis();
+        buildPath = file;
 
-        if (build) loadFromFile(file);
-        else readFromCache("cache.txt");
+        if (build) loadFromFile(buildPath);
+        else readFromCache("resources/world/cache.txt");
 
         long currentTimeLoading = System.currentTimeMillis() - startTimeLoading;
         currentTimeLoading = Math.round(currentTimeLoading / 100.0) / 10;
@@ -29,6 +33,12 @@ public class Countries implements Serializable {
             if (p.id == id){
                 p.geoShapes.setColor(color);
             }
+        }
+    }
+
+    public void setRandomTriangleColor(){
+        for (CountryPolygon p : polygons){
+            p.geoShapes.setRandomColor();
         }
     }
 
@@ -122,11 +132,10 @@ public class Countries implements Serializable {
                 count++;
             }
         }
-        catch (Exception e){
-            e.printStackTrace();
+        catch (Exception ignored){
         }
 
-        writeToCache("cache.txt");
+        writeToCache("resources/world/cache.txt");
     }
 
     public void writeToCache(String path){
@@ -139,8 +148,7 @@ public class Countries implements Serializable {
             obj.close();
             System.out.println("SAVED TO CACHE.");
         }
-        catch (Exception e){
-            e.printStackTrace();
+        catch (Exception ignored){
         }
     }
 
@@ -153,8 +161,11 @@ public class Countries implements Serializable {
             obj.close();
             System.out.println("READ FROM CACHE.");
         }
-        catch (Exception e){
-            e.printStackTrace();
+        catch (IOException e){
+            System.out.println("CACHE ERROR");
+            loadFromFile(buildPath);
+        }
+        catch (Exception ignored){
         }
     }
 

@@ -7,16 +7,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Random;
 
 public class GeoPoly implements Serializable {
 
     ArrayList<Vertex> vertices = new ArrayList<>();
     ArrayList<Triangle> triangles = new ArrayList<>();
     Color color;
-
-    public GeoPoly(ArrayList<Vertex> vertices) {
-        this.vertices = vertices;
-    }
 
     public GeoPoly(double[][] gps, Color color) {
         this.color = color;
@@ -34,33 +31,15 @@ public class GeoPoly implements Serializable {
         }
     }
 
-    public ArrayList<Triangle> geometryToVertices(Geometry g){
-        ArrayList<Triangle> temp = new ArrayList<>();
-        for (int i = 0; i < g.getNumGeometries(); i++) {
-            Coordinate[] c = g.getGeometryN(i).getCoordinates();
-            Vertex[] triangle = new Vertex[3];
-            for (int j = 0; j < 3; j++) {
-                triangle[j] = new Vertex(c[j].getX(), c[j].getY(), c[j].getZ());
-            }
-            triangles.add(new Triangle(triangle[0], triangle[1], triangle[2], new Color(255,255,255)));
+    public void setRandomColor(){
+        Random r = new Random();
+        for (Triangle t : triangles){
+            int randomR = r.nextInt(256);
+            int randomG = r.nextInt(256);
+            int randomB = r.nextInt(256);
+
+            t.color = new Color(randomR, randomG, randomB);
         }
-        return temp;
-    }
-
-    public int vertexAboveLine(Vertex v, Vertex v1, Vertex v2){
-        if (v1.x > v2.x){
-            Vertex temp = v1;
-            v1 = v2;
-            v2 = temp;
-        }
-
-        Vertex V1 = new Vertex(v2.x - v1.x, v2.y - v1.y, 0);
-        Vertex V2 = new Vertex(v2.x - v.x, v2.y - v.y, 0);
-        double V1V2 = V1.x * V2.y - V1.y * V2.x;
-
-        if (V1V2 > 0) return 1;
-        else if (V1V2 < 0) return -1;
-        else return 0;
     }
 
     public Geometry verticesToGeometry(ArrayList<Vertex> v){
@@ -121,16 +100,6 @@ public class GeoPoly implements Serializable {
         }
 
         return geometryToTriangles(triangulation);
-    }
-
-    public void verteciesToTriangles(){
-        for (int i = 0; vertices.size() - i >= 3; i += 3) {
-            Vertex[] triangle = new Vertex[3];
-            for (int j = 0; j < 3; j++) {
-                triangle[j] = new Vertex(vertices.get(i + j).x, vertices.get(i + j).y, vertices.get(i + j).z);
-            }
-            triangles.add(new Triangle(triangle[0], triangle[1], triangle[2], new Color(255,255,255)));
-        }
     }
 
     public void loadGPStoCoordinates(double[][] gps){

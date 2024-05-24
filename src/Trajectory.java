@@ -7,10 +7,22 @@ public class Trajectory {
     int numOfSegments;
     ArrayList<Dot> dotSegments;
 
+    double straightDistance;
+    boolean spaceoutSegments;
+    double dotFrequency;
+
     public Trajectory(Dot start, Dot end, int numOfSegments) {
         this.start = start;
         this.end = end;
+        this.spaceoutSegments = false;
         this.numOfSegments = numOfSegments;
+        setSegments();
+    }
+    public Trajectory(Dot start, Dot end, boolean spaceoutSegments, int dotFrequencyKm) {
+        this.start = start;
+        this.end = end;
+        this.spaceoutSegments = spaceoutSegments;
+        this.dotFrequency = dotFrequencyKm;
         setSegments();
     }
 
@@ -24,7 +36,11 @@ public class Trajectory {
         double difX = ev.x - sv.x;
         double difY = ev.y - sv.y;
         double difZ = ev.z - sv.z;
+
         double pyth = Math.sqrt(difX*difX + difY*difY + difZ*difZ);
+        straightDistance = Math.round(pyth * 6371) / 100.0;
+        if (spaceoutSegments) numOfSegments = (int) Math.ceil(straightDistance / dotFrequency);
+
         for (int s = 0; s <= numOfSegments; s++) {
             double x = difX * ((double) s / numOfSegments);
             double y = difY * ((double) s / numOfSegments);
@@ -37,32 +53,12 @@ public class Trajectory {
     public Vertex offsetVertexToSphere(Vertex v, int s, double pyth){
         double heightDiv = Math.pow(200 / pyth, Math.min(1.5, 220 / pyth));
         //System.out.println(pyth + ", " + heightDiv);
-
         double offset = (Math.sin(Math.toRadians(s * (180.0 / numOfSegments))) / heightDiv + 1);
         double x = v.x * offset;
         double y = v.y * offset;
         double z = v.z * offset;
 
         return new Vertex(x, y, z);
-    }
-
-    public Vertex generateDotOnGreatCircle(int s){
-        double difX = end.v.x - start.v.x;
-        double difY = end.v.y - start.v.y;
-        double difZ = end.v.z - start.v.z;
-
-        double radYX = Math.atan(difX / difY);
-        return null;
-
-
-        /*double difX = end.v.x - start.v.x;
-        double difY = end.v.y - start.v.y;
-        double difZ = end.v.z - start.v.z;
-
-        double angXY = Math.atan(difY);
-        double angXZ = Math.atan(difX);
-
-        return  new Vertex(0,0,0);*/
     }
 
 }

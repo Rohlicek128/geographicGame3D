@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseListener;
 
 public class LoadingPanel extends JPanel implements ActionListener {
 
@@ -14,6 +13,7 @@ public class LoadingPanel extends JPanel implements ActionListener {
 
     Color primary;
     Color secondary;
+    Font courierFontBold = RenderPanel.loadFont("resources/fonts/CourierPrime-Bold.ttf");
 
     public LoadingPanel(Color p, Color s) {
         this.primary = p;
@@ -27,34 +27,49 @@ public class LoadingPanel extends JPanel implements ActionListener {
         timer.start();
     }
 
-    public void paintComponent(Graphics g){
-        Graphics2D g2 = (Graphics2D) g;
+    public void paintComponent(Graphics g1){
+        Graphics2D g = (Graphics2D) g1;
 
         //BG
-        g2.setColor(primary.darker());
-        g2.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(primary.darker().darker());
+        g.fillRect(0, 0, getWidth(), getHeight());
 
         int borderWidth = 15;
-        g2.setColor(primary);
-        g2.fillRect(borderWidth, borderWidth, getWidth() - borderWidth*2, getHeight() - borderWidth*2);
+        g.setColor(primary.darker().darker().darker().darker());
+        g.fillRect(borderWidth, borderWidth, getWidth() - borderWidth*2, getHeight() - borderWidth*2);
+
+        //Atm
+        /*int atmSize = getWidth() * 5/4;
+        Point2D center = new Point2D.Float((float) (getWidth()/2.0), (float) (getHeight() /6 + getWidth()/2.0));
+        float[]  dist = {0.0f, 0.5f, 0.75f, 1.0f};
+        Color[] colors = {new Color(255, 255, 255, 255), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0), new Color(255, 255, 255, 0)};
+
+        RadialGradientPaint rgp = new RadialGradientPaint(center, atmSize, dist, colors);
+        g.setPaint(rgp);
+        g.fill(new Ellipse2D.Double(-atmSize / 2.0 + getWidth()/2.0,-atmSize / 2.0 + getWidth()/2.0, atmSize, atmSize));*/
+
+        //Circle
+        int ovalSize = getWidth();
+        g.setColor(primary.brighter());
+        g.fillOval(0, (int) Math.pow(seconds * 7, 0.7), ovalSize, ovalSize);
 
         //Text
         int size = 25;
-        g2.setColor(secondary);
-        g2.setFont(new Font("Courier Prime", Font.BOLD, size));
-        g2.drawString(loadingText.toString(), getWidth() / 2 - size*6, getHeight()/3 + size/2 + 7);
+        g.setFont(courierFontBold.deriveFont((float) size));
+        g.setColor(secondary);
+        g.drawString(loadingText.toString(), getWidth() / 2 - size*6, getHeight()/3 + size/2 + 7);
 
         //Bar
         size = 50;
-        g2.setColor(secondary);
-        g2.setFont(new Font("Courier Prime", Font.BOLD, size));
-        g2.drawString(loadingBar, getWidth() / 2 - 7 * size/2, getHeight()/2 + size/2 - 7);
+        g.setFont(courierFontBold.deriveFont((float) size));
+        g.setColor(secondary);
+        g.drawString(loadingBar, getWidth() / 2 - 7 * size/2, getHeight()/2 + size/2 - 7);
 
         //Seconds
         size = 30;
-        g2.setColor(secondary);
-        g2.setFont(new Font("Courier Prime", Font.BOLD, size));
-        g2.drawString(seconds + " s", getWidth() - 100, (int) (getHeight() - size));
+        g.setFont(courierFontBold.deriveFont((float) size));
+        g.setColor(secondary);
+        g.drawString(seconds + " s", getWidth()/2 - size, getHeight() - size);
     }
 
     @Override

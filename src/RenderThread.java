@@ -1,7 +1,5 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
-import java.util.ArrayList;
 
 public class RenderThread extends Thread{
 
@@ -17,13 +15,14 @@ public class RenderThread extends Thread{
     int height;
     int mouseX;
     int mouseY;
-    boolean mouseInCountry;
-    boolean changeCursor;
+    boolean changeCursor = false;
     String mouseOnCountry;
-    int mouseOnCountryID = -1;
-    int mouseOnCountryIDlast;
+    int futureMouseOnCountryID = -1;
+    int pastMouseOnCountryID;
 
-    public RenderThread(int startIndex, int endIndex, Countries countries, Matrix3 transform, double zoomSize, int width, int height, int mouseX, int mouseY, int mouseOnCountryID) {
+    int trianglesRendered = 0;
+
+    public RenderThread(int startIndex, int endIndex, Countries countries, Matrix3 transform, double zoomSize, int width, int height, int mouseX, int mouseY, int pastMouseOnCountryID) {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
         this.countries = countries;
@@ -34,29 +33,13 @@ public class RenderThread extends Thread{
         this.mouseX = mouseX;
         this.mouseY = mouseY;
 
-        this.mouseOnCountryIDlast = mouseOnCountryID;
+        img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        this.pastMouseOnCountryID = pastMouseOnCountryID;
     }
 
     @Override
     public void run(){
-        img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        changeCursor = false;
-        mouseInCountry = false;
-        int lastIDi = startIndex;
-        int count = startIndex;
-        for (int i = startIndex; i < endIndex + (mouseInCountry ? 1 : 0); i++){
-            if (i >= countries.polygons.size() && count > i + 1) break;
-
-            if (mouseInCountry && count == i + 1){
-                i = lastIDi;
-                mouseOnCountry = countries.polygons.get(i).name;
-                mouseOnCountryID = countries.polygons.get(i).id;
-                changeCursor = true;
-            }
-            else if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) mouseInCountry = false;
-
-            if (countries.polygons.get(i).id != countries.polygons.get(lastIDi).id) lastIDi = i;
-
+        for (int i = startIndex; i < endIndex; i++){
             for (Triangle t : countries.polygons.get(i).geoShapes.triangles){
                 Vertex v1 = transform.transform(t.v1);
                 Vertex v2 = transform.transform(t.v2);
@@ -90,27 +73,21 @@ public class RenderThread extends Thread{
                         boolean V2 = Vertex.crossProduct(v2, v3, v1, p);
                         boolean V3 = Vertex.crossProduct(v3, v1, v2, p);
                         if (V1 && V2 && V3){
-                            //if (mouseOnCountryIDlast == countries.polygons.get(i).id)
-                            if ((mouseX == x && mouseY == y) || mouseInCountry) {
-                                mouseInCountry = true;
-                                img.setRGB(x, y, Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter().getRGB());
+                            if (t.color == null) t.color = new Color(255,0,255); //Fix later
+
+                            if (mouseX == x && mouseY == y) {
+                                changeCursor = true;
+                                mouseOnCountry = countries.polygons.get(i).name;
+                                futureMouseOnCountryID = countries.polygons.get(i).id;
                             }
+                            if (pastMouseOnCountryID == countries.polygons.get(i).id) img.setRGB(x, y, Triangle.getShadow(t.color, Math.abs(normal.z)).brighter().brighter().getRGB());
                             else img.setRGB(x, y,  Triangle.getShadow(t.color, Math.abs(normal.z)).getRGB());
                         }
                     }
                 }
+                trianglesRendered++;
             }
-            count++;
-            if (mouseInCountry) count++;
         }
-
-        /*for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                img.setRGB(x, y, new Color(0, 255, 0).getRGB());
-            }
-        }*/
-        //g2.drawImage(img, -width / 2,-height / 2, width, height, observer);
-
     }
 
 }

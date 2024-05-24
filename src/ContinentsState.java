@@ -10,18 +10,26 @@ public class ContinentsState {
     int correctPercentage;
     int correctCount;
 
-    public ContinentsState(int minCountrySize, int correctPercentage, Countries countries) {
-        this.minCountrySize = minCountrySize;
+    int overallWrongCount;
+    int wrongMax;
 
-        if (correctPercentage > 100 || correctPercentage <= 0) throw new InputMismatchException();
-        else this.correctPercentage = correctPercentage;
+    int overallCorrectCount;
+    int overallMaxCorrect;
+
+    public ContinentsState(int minCountrySize, int correctPercentage, int wrongMax, Countries countries) {
+        this.minCountrySize = minCountrySize;
+        this.correctPercentage = Math.max(1, Math.min(100, correctPercentage));
+        this.wrongMax = wrongMax;
 
         loadContinentsOrder();
-        for (Continent c : orderedContinents) c.loadNumOfCountries(countries);
+        for (int i = 0; i < orderedContinents.size(); i++){
+            orderedContinents.get(i).loadNumOfCountries(countries);
+            overallMaxCorrect += getCurrentCorrectMax(i);
+        }
     }
 
-    public int getCurrentCorrectMax(){
-        return (int) Math.ceil(orderedContinents.get(currentIndex).numOfCountries * (correctPercentage / 100.0));
+    public int getCurrentCorrectMax(int index){
+        return (int) Math.ceil(orderedContinents.get(index).numOfCountries * (correctPercentage / 100.0));
     }
 
     public void loadContinentsOrder(){
@@ -35,24 +43,24 @@ public class ContinentsState {
     }
 
     public boolean equalsCurrentContinent(CountryPolygon country){
-        Continent currentContinent = orderedContinents.get(currentIndex);
-        if (country.geoShapes.vertices.size() < minCountrySize) return false;
-
-        if (correctCount >= getCurrentCorrectMax()) {
+        if (correctCount >= getCurrentCorrectMax(currentIndex)) {
             correctCount = 0;
             currentIndex++;
         }
 
+        Continent currentContinent = orderedContinents.get(currentIndex);
+        if (country.geoShapes.vertices.size() < minCountrySize) return false;
+
         //Divide Americas into North and South
         if (currentContinent.name.equalsIgnoreCase("Northern America")){
-            return country.region.equalsIgnoreCase("Northern America") || country.region.equalsIgnoreCase("Central America");
+            return country.region.equalsIgnoreCase("Northern America") || country.region.equalsIgnoreCase("Central America") || country.region.equalsIgnoreCase("Caribbean");
         }
         if (currentContinent.name.equalsIgnoreCase("South America")){
             return country.region.equalsIgnoreCase("South America");
         }
 
         //Other continents
-        return country.continent.equalsIgnoreCase(currentContinent.name) && !country.name.equalsIgnoreCase("Bouvet Island");
+        return country.continent.equalsIgnoreCase(currentContinent.name);
     }
 
 }

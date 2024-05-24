@@ -19,7 +19,15 @@ public class Continent {
                     lastID = cp.id;
                 }
             }
-            if (type == LocationType.REGION){
+            if (name.equalsIgnoreCase("Northern America")){
+                if ((cp.region.equalsIgnoreCase("Northern America") ||
+                        cp.region.equalsIgnoreCase("Central America") ||
+                        cp.region.equalsIgnoreCase("Caribbean")) && cp.id > lastID){
+                    numOfCountries++;
+                    lastID = cp.id;
+                }
+            }
+            else if (type == LocationType.REGION){
                 if (cp.region.equalsIgnoreCase(name) && cp.id > lastID){
                     numOfCountries++;
                     lastID = cp.id;
