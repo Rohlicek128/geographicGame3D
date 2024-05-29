@@ -19,7 +19,7 @@ public class Countries implements Serializable {
         buildPath = file;
 
         if (build) loadFromFile(buildPath);
-        else readFromCache("resources/world/cache.txt");
+        else readFromCache(Objects.requireNonNull(this.getClass().getResource("world/cache.txt")).getPath());
 
         long currentTimeLoading = System.currentTimeMillis() - startTimeLoading;
         currentTimeLoading = Math.round(currentTimeLoading / 100.0) / 10;
@@ -135,7 +135,30 @@ public class Countries implements Serializable {
         catch (Exception ignored){
         }
 
-        writeToCache("resources/world/cache.txt");
+        writeToCache("world/cache.txt");
+    }
+
+    public void recolorCountries(Color c, int darkenCoef){
+        for (int i = 0; i <= polygons.get(polygons.size() - 1).id; i++) {
+            int plusID = 0;
+            try {
+                while (polygons.get(i + plusID).id != i){
+                    plusID++;
+                }
+            }
+            catch (Exception e){
+                plusID--;
+            }
+
+            int randomOffset = new Random().nextInt(30);
+            int heightColor = (int) Math.round(Math.abs(Math.cos(Math.toRadians(polygons.get(i + plusID).geoPoint[0])) * darkenCoef));
+
+            int red = Math.max(0, Math.min(255, c.getRed() - heightColor + randomOffset));
+            int green = Math.max(0, Math.min(255, c.getGreen() - heightColor + randomOffset));
+            int blue = Math.max(0, Math.min(255, c.getBlue() - heightColor + randomOffset));
+
+            setPolygonsColor(new Color(red, green, blue), i);
+        }
     }
 
     public void writeToCache(String path){
@@ -148,24 +171,23 @@ public class Countries implements Serializable {
             obj.close();
             System.out.println("SAVED TO CACHE.");
         }
-        catch (Exception ignored){
+        catch (Exception e){
+            System.out.println("SAVING TO CACHE FAILED.");
         }
     }
 
     public void readFromCache(String path){
         try {
-            FileInputStream file = new FileInputStream(path);
-            ObjectInputStream obj = new ObjectInputStream(file);
+            //FileInputStream file = new FileInputStream(Objects.requireNonNull(this.getClass().getResource(path)).getFile());
+            ObjectInputStream obj = new ObjectInputStream(this.getClass().getResourceAsStream("world/cache.txt"));
 
             this.polygons = (ArrayList<CountryPolygon>) obj.readObject();
             obj.close();
             System.out.println("READ FROM CACHE.");
         }
-        catch (IOException e){
+        catch (Exception e){
             System.out.println("CACHE ERROR");
             loadFromFile(buildPath);
-        }
-        catch (Exception ignored){
         }
     }
 
@@ -176,6 +198,14 @@ public class Countries implements Serializable {
             }
         }
         throw new InputMismatchException();
+    }
+
+    public int vertexCountForCountry(CountryPolygon country){
+        int vCount = 0;
+        for (CountryPolygon cp : polygons){
+            if (cp.id == country.id) vCount += cp.geoShapes.vertices.size();
+        }
+        return vCount;
     }
 
 }

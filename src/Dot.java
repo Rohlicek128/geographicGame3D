@@ -6,12 +6,22 @@ public class Dot {
     int size;
     int minSize;
     Color color;
+    String name;
 
     public Dot(Vertex v, int size, int minSize, Color color) {
         this.v = v;
         this.size = size;
         this.minSize = minSize;
         this.color = color;
+        this.name = "";
+    }
+
+    public Dot(Vertex v, int size, int minSize, Color color, String name) {
+        this.v = v;
+        this.size = size;
+        this.minSize = minSize;
+        this.color = color;
+        this.name = name;
     }
 
     public void drawDot(Graphics2D g, Matrix3 transform, double zoomSize){
@@ -24,6 +34,12 @@ public class Dot {
 
             g.setColor(color);
             g.fillOval((int) (tv.x - tsize/2), (int) (tv.y - tsize/2), tsize, tsize);
+
+            if (!name.equalsIgnoreCase("")) {
+                g.setColor(new Color(255,255,255));
+                g.setFont(new Font("Ariel", Font.BOLD, (int) (zoomSize * 2)));
+                g.drawString(name, (int) (tv.x + tsize/2), (int) (tv.y - tsize/2));
+            }
         }
     }
 

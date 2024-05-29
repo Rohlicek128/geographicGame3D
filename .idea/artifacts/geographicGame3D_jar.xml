@@ -3,8 +3,9 @@
     <output-path>$PROJECT_DIR$/out/artifacts/geographicGame3D_jar</output-path>
     <root id="archive" name="geographicGame3D.jar">
       <element id="module-output" name="geographicGame3D" />
-      <element id="library" level="application" name="java" />
       <element id="extracted-dir" path="$PROJECT_DIR$/../!libraries/jts-core-1.19.0.jar" path-in-jar="/" />
+      <element id="library" level="application" name="java" />
+      <element id="dir-copy" path="$PROJECT_DIR$/resources" />
     </root>
   </artifact>
 </component>

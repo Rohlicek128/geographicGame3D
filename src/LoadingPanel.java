@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Objects;
 
 public class LoadingPanel extends JPanel implements ActionListener {
 
@@ -13,7 +14,7 @@ public class LoadingPanel extends JPanel implements ActionListener {
 
     Color primary;
     Color secondary;
-    Font courierFontBold = RenderPanel.loadFont("resources/fonts/CourierPrime-Bold.ttf");
+    Font courierFontBold = loadFont("fonts/CourierPrime-Bold.ttf");
 
     public LoadingPanel(Color p, Color s) {
         this.primary = p;
@@ -70,6 +71,16 @@ public class LoadingPanel extends JPanel implements ActionListener {
         g.setFont(courierFontBold.deriveFont((float) size));
         g.setColor(secondary);
         g.drawString(seconds + " s", getWidth()/2 - size, getHeight() - size);
+    }
+
+    public Font loadFont(String path){
+        Font temp = null;
+        try {
+            temp = Font.createFont(Font.TRUETYPE_FONT, this.getClass().getResourceAsStream(path)).deriveFont(Font.BOLD, 25);
+        } catch (Exception e) {
+            System.out.println("Font failed to load.");
+        }
+        return temp;
     }
 
     @Override

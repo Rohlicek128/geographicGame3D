@@ -5,7 +5,7 @@ import java.util.Objects;
 public class LoadingWindow extends JFrame {
 
     LoadingPanel loadingPanel;
-    ImageIcon img = new ImageIcon("./resources/icons/whiteIcon.png");
+    ImageIcon img = new ImageIcon(Objects.requireNonNull(this.getClass().getResource("icons/whiteIcon.png")));
     Rectangle screenSize = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 
     public LoadingWindow(Color p, Color s) {

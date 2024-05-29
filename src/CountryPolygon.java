@@ -21,7 +21,7 @@ public class CountryPolygon implements Serializable {
         this.region = region;
     }
 
-    public void drawCountryOutline(Graphics2D g, Matrix3 transform, double zoomSize, float thickness){
+    public void drawCountryOutline(Graphics2D g, Matrix3 transform, double zoomSize, float thickness, Color color){
         Path2D path = new Path2D.Double();
         Vertex v = GeoPoly.gpsToSphere(new Vertex(geoShapes.vertices.get(0).x, geoShapes.vertices.get(0).y, geoShapes.vertices.get(0).z));
         v = transform.transform(v);
@@ -32,7 +32,7 @@ public class CountryPolygon implements Serializable {
             path.lineTo(v.x * zoomSize, v.y * zoomSize);
         }
         path.closePath();
-        g.setColor(geoShapes.getColor().brighter().brighter().brighter());
+        g.setColor(color);
         g.setStroke(new BasicStroke(thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g.draw(path);
     }

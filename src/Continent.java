@@ -2,12 +2,13 @@ public class Continent {
 
     String name;
     LocationType type;
+    double[] centralCoordinates;
     int numOfCountries;
-    int guessedCount;
 
-    public Continent(String name, LocationType type) {
+    public Continent(String name, LocationType type, double centralX, double centralY) {
         this.name = name;
         this.type = type;
+        this.centralCoordinates = new double[]{centralX, centralY};
     }
 
     public void loadNumOfCountries(Countries countries){

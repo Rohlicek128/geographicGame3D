@@ -12,10 +12,9 @@ public class RocketTrajectory extends Trajectory{
     int explosionMaxSize;
 
     public RocketTrajectory(Dot start, Dot end, int flightDuration) {
-        super(start, end, true, 10);
+        super(start, end, true, 7);
         this.flightDuration = flightDuration;
 
-        Collections.reverse(dotSegments);
         for (Dot dot : dotSegments){
             dot.color = new Color(0, true);
         }

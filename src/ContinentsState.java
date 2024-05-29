@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.InputMismatchException;
 
 public class ContinentsState {
@@ -33,23 +34,27 @@ public class ContinentsState {
     }
 
     public void loadContinentsOrder(){
-        orderedContinents.add(new Continent("Europe", LocationType.CONTINENT));
-        orderedContinents.add(new Continent("Northern America", LocationType.REGION));
-        orderedContinents.add(new Continent("South America", LocationType.REGION));
-        orderedContinents.add(new Continent("Asia", LocationType.CONTINENT));
-        orderedContinents.add(new Continent("Africa", LocationType.CONTINENT));
-        orderedContinents.add(new Continent("Oceania", LocationType.CONTINENT));
-        orderedContinents.add(new Continent("Antarctica", LocationType.CONTINENT));
+        orderedContinents.add(new Continent("Europe", LocationType.CONTINENT, 14.5, 50.0));
+        orderedContinents.add(new Continent("Northern America", LocationType.REGION, -94.9, 41.2));
+        orderedContinents.add(new Continent("South America", LocationType.REGION, -60.4, -18.5));
+        orderedContinents.add(new Continent("Asia", LocationType.CONTINENT, 86.0, 34.1));
+        orderedContinents.add(new Continent("Africa", LocationType.CONTINENT, 14.9, 3.6));
+        orderedContinents.add(new Continent("Oceania", LocationType.CONTINENT, 148.5, -28.8));
+        orderedContinents.add(new Continent("Antarctica", LocationType.CONTINENT, 83.0, -85.0));
     }
 
-    public boolean equalsCurrentContinent(CountryPolygon country){
+    public void randomizeOrder(){
+        Collections.shuffle(orderedContinents);
+    }
+
+    public boolean equalsCurrentContinent(CountryPolygon country, int vertexCount){
         if (correctCount >= getCurrentCorrectMax(currentIndex)) {
             correctCount = 0;
             currentIndex++;
         }
 
         Continent currentContinent = orderedContinents.get(currentIndex);
-        if (country.geoShapes.vertices.size() < minCountrySize) return false;
+        if (vertexCount < minCountrySize) return false;
 
         //Divide Americas into North and South
         if (currentContinent.name.equalsIgnoreCase("Northern America")){

@@ -2,12 +2,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Objects;
 
 public class RenderWindow extends JFrame implements KeyListener {
     RenderPanel renderPanel;
     Countries preloaded;
 
-    ImageIcon img = new ImageIcon("./resources/icons/yellowIcon.png");
+    ImageIcon img = new ImageIcon(Objects.requireNonNull(this.getClass().getResource("icons/yellowIcon.png")));
     Rectangle screenSize = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
     boolean fullscreen = false;
     Dimension lastWindowSize;
@@ -19,14 +20,16 @@ public class RenderWindow extends JFrame implements KeyListener {
     Color p, s, c, w;
     boolean randomTriangles = false;
 
+    Difficulty lastDifficulty;
+
     public RenderWindow(Color p, Color s, Color c, Color w) {
         this.p = p;
         this.s = s;
         this.c = c;
         this.w = w;
 
-        setRenderPanel();
-        this.preloaded = renderPanel.countries;
+        this.preloaded = new Countries(Objects.requireNonNull(this.getClass().getResource("world/world-administrative-boundaries.csv")).getPath(), false, s);
+        setStartPanel();
 
         this.addKeyListener(this);
         this.setFocusable(true);
@@ -41,14 +44,50 @@ public class RenderWindow extends JFrame implements KeyListener {
         this.setVisible(true);
     }
 
-    public void setRenderPanel(){
+    public void setNewRenderPanel(Difficulty difficulty, boolean spin){
+        JLayeredPane layeredPane = this.getLayeredPane();
+        layeredPane.setLayout(new BorderLayout());
+
+        this.lastDifficulty = difficulty;
+        this.renderPanel = new RenderPanel(p, s, preloaded, difficulty);
+        renderPanel.correctColor = c;
+        renderPanel.wrongColor = w;
+        if (!spin) renderPanel.startGame();
+        layeredPane.add(renderPanel, BorderLayout.CENTER, 0);
+    }
+
+    public void setStartPanel(){
+        /*JLayeredPane layeredPane = this.getLayeredPane();
+        layeredPane.setLayout(new BorderLayout());
+        layeredPane.setOpaque(false);
+
+        //this.lastDifficulty = difficulty;
+        this.renderPanel = new RenderPanel(p, s, preloaded, new Difficulty("Easy", 1, 17,
+                new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192), "Russia"),
+                new Dot(new Vertex(129.165, 41.132,0), 1, 3, new Color(255, 255, 255, 192), "North Korea")));
+        renderPanel.correctColor = c;
+        renderPanel.wrongColor = w;
+        layeredPane.add(renderPanel, BorderLayout.CENTER, 0);
+
+        setNewRenderPanel(new Difficulty("Easy", 1, 17,
+                new Dot(new Vertex(45.755, 51.813,0), 1, 3, new Color(255, 255, 255, 192), "Russia"),
+                new Dot(new Vertex(129.165, 41.132,0), 1, 3, new Color(255, 255, 255, 192), "North Korea")));
+
+        StartPanel startPanel = new StartPanel();
+        layeredPane.add(startPanel, BorderLayout.CENTER, 10);*/
+
         Container pane = this.getContentPane();
         pane.setLayout(new BorderLayout());
 
-        this.renderPanel = new RenderPanel(p, s, preloaded);
-        renderPanel.correctColor = c;
-        renderPanel.wrongColor = w;
-        pane.add(renderPanel, BorderLayout.CENTER);
+        StartPanel startPanel = new StartPanel();
+        pane.add(startPanel, BorderLayout.CENTER);
+    }
+
+    public void setEndPanel(EndPanel endPanel){
+        Container pane = this.getContentPane();
+        pane.setLayout(new BorderLayout());
+
+        pane.add(endPanel, BorderLayout.CENTER);
     }
 
     @Override
@@ -109,6 +148,21 @@ public class RenderWindow extends JFrame implements KeyListener {
             //renderPanel.coreCount--;
             System.out.println("VOLUME DOWN:" + renderPanel.gameAudio.audioVolume);
         }
+        else if (e.getKeyCode() == KeyEvent.VK_C) {
+            renderPanel.setCameraToCoordinates(renderPanel.continentsState.orderedContinents.get(renderPanel.continentsState.currentIndex).centralCoordinates);
+            System.out.println("CAMERA CENTRED");
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_R) {
+            renderPanel.interruptAudio();
+            renderPanel.setVisible(false);
+            renderPanel.removeAll();
+
+            setStartPanel();
+            System.out.println("GAME RESET");
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_HOME) {
+            if (!renderPanel.gameStart) renderPanel.startGame();
+        }
         else if (renderPanel.viewTooltip){ //Debug
             if (e.getKeyCode() == KeyEvent.VK_A) {
                 double x = renderPanel.trajectories.get(0).end.v.x - moveDPI;
@@ -156,10 +210,12 @@ public class RenderWindow extends JFrame implements KeyListener {
             else if (e.getKeyCode() == KeyEvent.VK_T) {
                 randomTriangles = !randomTriangles;
                 if (randomTriangles) renderPanel.countries.setRandomTriangleColor();
-                else renderPanel.recolorCountries(s, 210);
+                else renderPanel.countries.recolorCountries(s, 210);
                 System.out.println("TRIANGLE VIEW SWITCHED");
+
             }
         }
+        renderPanel.revalidate();
         renderPanel.repaint();
     }
 

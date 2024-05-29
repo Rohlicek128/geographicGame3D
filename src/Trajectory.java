@@ -1,4 +1,6 @@
+import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Trajectory {
 
@@ -17,6 +19,8 @@ public class Trajectory {
         this.spaceoutSegments = false;
         this.numOfSegments = numOfSegments;
         setSegments();
+
+        Collections.reverse(dotSegments);
     }
     public Trajectory(Dot start, Dot end, boolean spaceoutSegments, int dotFrequencyKm) {
         this.start = start;
@@ -24,6 +28,8 @@ public class Trajectory {
         this.spaceoutSegments = spaceoutSegments;
         this.dotFrequency = dotFrequencyKm;
         setSegments();
+
+        Collections.reverse(dotSegments);
     }
 
     //Segments from start dot to end dot
@@ -59,6 +65,14 @@ public class Trajectory {
         double z = v.z * offset;
 
         return new Vertex(x, y, z);
+    }
+
+    public void recolorFromPercentage(Color color, double startPerc, double endPerc){
+        int startIndex = (int) Math.floor(numOfSegments * startPerc);
+        int endIndex = (int) Math.floor(numOfSegments * endPerc);
+        for (int i = startIndex; i < endIndex; i++) {
+            dotSegments.get(i).color = color;
+        }
     }
 
 }
