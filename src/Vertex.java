@@ -12,6 +12,11 @@ public class Vertex implements Serializable {
         this.z = z;
     }
 
+    /**
+     * Calculates the cross product of a triangle and a point.
+     * @param p - point in or out of the triangle.
+     * @return if the point is or isn't int the triangle.
+     */
     public static boolean crossProduct(Vertex A, Vertex B, Vertex C, Vertex p){
         Vertex V1V2 = new Vertex(B.x - A.x,B.y - A.y,B.z - A.z);
         Vertex V1V3 = new Vertex(C.x - A.x,C.y - A.y,C.z - A.z);
@@ -23,6 +28,10 @@ public class Vertex implements Serializable {
         return V1V2CrossV1V3 * V1V2CrossV1P > 0;
     }
 
+    /**
+     * Calculates the vector that is perpendicular to the triangle.
+     * @return normal vector.
+     */
     public static Vertex normalVector(Vertex v1, Vertex v2, Vertex v3){
         Vertex ab = new Vertex(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
         Vertex ac = new Vertex(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z);

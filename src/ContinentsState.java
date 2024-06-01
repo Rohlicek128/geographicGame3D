@@ -8,7 +8,7 @@ public class ContinentsState {
     int currentIndex = 0;
     int minCountrySize;
 
-    int correctPercentage;
+    Difficulty difficulty;
     int correctCount;
 
     int overallWrongCount;
@@ -17,20 +17,34 @@ public class ContinentsState {
     int overallCorrectCount;
     int overallMaxCorrect;
 
-    public ContinentsState(int minCountrySize, int correctPercentage, int wrongMax, Countries countries) {
+    int points;
+
+    public ContinentsState(int minCountrySize, Difficulty difficulty, int wrongMax) {
         this.minCountrySize = minCountrySize;
-        this.correctPercentage = Math.max(1, Math.min(100, correctPercentage));
+        this.difficulty = difficulty;
         this.wrongMax = wrongMax;
 
         loadContinentsOrder();
+    }
+
+    /**
+     * Loads to all continents the number of countries in that continent.
+     * @param countries - List of all countries
+     */
+    public void loadNumOfCountries(Countries countries){
         for (int i = 0; i < orderedContinents.size(); i++){
             orderedContinents.get(i).loadNumOfCountries(countries);
             overallMaxCorrect += getCurrentCorrectMax(i);
         }
     }
 
+    /**
+     * Gets the max number of countries in the current continent to advance to the next.
+     * @param index - continents order in the list.
+     * @return the max number of countries.
+     */
     public int getCurrentCorrectMax(int index){
-        return (int) Math.ceil(orderedContinents.get(index).numOfCountries * (correctPercentage / 100.0));
+        return (int) Math.ceil(orderedContinents.get(index).numOfCountries * (difficulty.correctPercentage / 100.0));
     }
 
     public void loadContinentsOrder(){
@@ -43,10 +57,27 @@ public class ContinentsState {
         orderedContinents.add(new Continent("Antarctica", LocationType.CONTINENT, 83.0, -85.0));
     }
 
+    /**
+     * Calculates points.
+     * @param time - time in milliseconds from which it took to guess all the countries.
+     * @return points.
+     */
+    public int calculateScore(long time){
+        int maxTimePoints = 2000 - difficulty.flightDuration;
+        int timePoints = (int) Math.max(0, Math.min(maxTimePoints, (maxTimePoints - ((time / 1000.0) / difficulty.flightDuration) * maxTimePoints)));
+        return points + timePoints;
+    }
+
     public void randomizeOrder(){
         Collections.shuffle(orderedContinents);
     }
 
+    /**
+     * Checks if the randomly generated country is eligible to be next.
+     * @param country - randomly generated country;
+     * @param vertexCount - size of the country.
+     * @return if its eligible.
+     */
     public boolean equalsCurrentContinent(CountryPolygon country, int vertexCount){
         if (correctCount >= getCurrentCorrectMax(currentIndex)) {
             correctCount = 0;

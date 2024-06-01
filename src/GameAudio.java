@@ -42,6 +42,10 @@ public class GameAudio extends Thread{
         }
     }
 
+    /**
+     * Plays beeping sound. (Supplied by Vašek)
+     * @param duration - For how long should it play.
+     */
     public void playBeep(double duration){
         int sampleRate = 44100;
         double freqOfTone = 375;
@@ -71,6 +75,11 @@ public class GameAudio extends Thread{
         sdl.stop();
     }
 
+    /**
+     * Plays sound.
+     * @param path - .wav sound file path.
+     * @param volumeLevel - The audio level.
+     */
     public synchronized void playSound(String path, double volumeLevel) {
         new Thread(() -> {
             try {

@@ -12,7 +12,8 @@ public class EndPanel extends JPanel implements KeyListener {
     ContinentsState continentsState;
     long finalTime;
     int score;
-    double wrongCoef;
+    double accuracy;
+
     boolean white = true;
 
     ScoreboardManager scoreboardManager;
@@ -28,7 +29,9 @@ public class EndPanel extends JPanel implements KeyListener {
         this.endType = endType;
         this.continentsState = continentsState;
         this.finalTime = finalTime;
-        this.score = calculateScore();
+        this.score = continentsState.calculateScore(finalTime);
+        this.accuracy = calculateAccuracy();
+
         this.scoreboardManager = new ScoreboardManager();
         this.scoreboardManager.loadScoreboard();
 
@@ -39,6 +42,7 @@ public class EndPanel extends JPanel implements KeyListener {
         setupTimers();
     }
 
+    @Override
     public void paintComponent(Graphics g1) {
         this.requestFocus();
         Graphics2D g = (Graphics2D) g1;
@@ -68,6 +72,10 @@ public class EndPanel extends JPanel implements KeyListener {
         }
     }
 
+    /**
+     * Draws your after game summary.
+     * @param g - Graphics.
+     */
     public void drawPage1(Graphics2D g){
         //Explosion screen
         if (white && endType == EndType.LOST) {
@@ -107,14 +115,18 @@ public class EndPanel extends JPanel implements KeyListener {
         String guessedCountText = "Guessed: " + continentsState.overallCorrectCount + "/" + continentsState.overallMaxCorrect;
         g.drawString(guessedCountText, (int) (-(guessedCountText.length() / 2.0) * fontSize/1.66), fontSize * 3 + offset);
 
-        String accuracyText = "Accuracy: " + (Math.round(wrongCoef * 1000.0) / 10.0) + " %";
+        String accuracyText = "Accuracy: " + (Math.round(accuracy * 1000.0) / 10.0) + " %";
         g.drawString(accuracyText, (int) (-(accuracyText.length() / 2.0) * fontSize/1.66), fontSize * 4 + offset);
     }
 
+    /**
+     * Draws boxes for you to put your initials in.
+     * @param g - Graphics.
+     */
     public void drawPage2(Graphics2D g){
         //Set your name
         int y = -100;
-        UIText.drawTextBox(g, yourName, currentIndexName, courierFontBold, 0, y, 400);
+        UIText.drawTextBox(g, yourName, null, currentIndexName, courierFontBold, 0, y, 400);
 
         //Text
         int fontSize = 40;
@@ -129,6 +141,10 @@ public class EndPanel extends JPanel implements KeyListener {
         g.drawString(escapeText, (int) (-(escapeText.length() / 2.0) * fontSize/1.66), y + 180);
     }
 
+    /**
+     * Draws scoreboard.
+     * @param g - Graphics.
+     */
     public void drawPage3(Graphics2D g){
         g.setColor(new Color(255, 255, 255));
         int fontSize = 85;
@@ -148,10 +164,10 @@ public class EndPanel extends JPanel implements KeyListener {
         g.translate(-getWidth() / 2, -getHeight() / 2);
 
         int row = 3;
-        fontSize = 40;
         g.setColor(new Color(255,255,255));
         for (Score s : scoreboardManager.scoreboard){
             if (row - 2 > 10) break;
+            fontSize = 40;
 
             if (s.name.equalsIgnoreCase(charsToString(yourName)) && s.score == score){
                 g.setColor(new Color(255, 255, 255, 37));
@@ -163,9 +179,10 @@ public class EndPanel extends JPanel implements KeyListener {
             String space = row - 2 == 10 ? "" : " ";
             g.drawString((row - 2) + "." + space + s.name.toUpperCase(), fromWalls, fontSize * (row + 1));
 
-            g.setFont(courierFontItalic.deriveFont(Font.ITALIC, (float) fontSize));
-            String scoreText = s.score + " pt";
-            g.drawString(scoreText, (int) (-(scoreText.length()) * fontSize/1.66) + getWidth() - fromWalls, fontSize * (row + 1));
+            int smallFontSize = (int) (fontSize * 0.9);
+            g.setFont(courierFontItalic.deriveFont(Font.ITALIC, (float) smallFontSize));
+            String scoreText = s.score + "pt " + Character.toUpperCase(s.difficulty.name.toCharArray()[0]);
+            g.drawString(scoreText, (int) (-(scoreText.length()) * smallFontSize/1.66) + getWidth() - fromWalls, fontSize * (row + 1));
 
             row++;
         }
@@ -173,6 +190,7 @@ public class EndPanel extends JPanel implements KeyListener {
         //Translate back back
         g.translate(getWidth() / 2, getHeight() / 2);
     }
+
 
     public static String charsToString(char[] chars){
         StringBuilder sb = new StringBuilder();
@@ -183,13 +201,8 @@ public class EndPanel extends JPanel implements KeyListener {
         return sb.toString();
     }
 
-    public int calculateScore(){
-        wrongCoef = 1.0 - ((double) continentsState.overallWrongCount / (continentsState.wrongMax * continentsState.overallMaxCorrect));
-
-        double score;
-        if (endType == EndType.LOST) score = -1000 + (((double) continentsState.overallCorrectCount / continentsState.overallMaxCorrect) * 1000.0) * wrongCoef;
-        else score = ((Math.pow(continentsState.overallMaxCorrect, 2) / ((finalTime / 1000.0)) / 1.5) * 100.0) * wrongCoef;
-        return (int) Math.floor(score);
+    public double calculateAccuracy(){
+        return 1.0 - ((double) continentsState.overallWrongCount / (continentsState.wrongMax * continentsState.overallMaxCorrect));
     }
 
     public void setupTimers(){
@@ -235,7 +248,7 @@ public class EndPanel extends JPanel implements KeyListener {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER){
             if (page == 2 && !wasSet && currentIndexName != 0) {
-                scoreboardManager.addToScoreboard(new Score(charsToString(yourName), score));
+                scoreboardManager.addToScoreboard(new Score(charsToString(yourName), score, continentsState.difficulty));
                 wasSet = true;
             }
             page++;

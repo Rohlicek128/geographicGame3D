@@ -1,6 +1,7 @@
 import java.awt.*;
+import java.io.Serializable;
 
-public class Difficulty {
+public class Difficulty implements Serializable {
 
     String name;
     int correctPercentage;
@@ -14,6 +15,11 @@ public class Difficulty {
         this.flightDuration = flightDuration;
         this.startDot = startDot;
         this.endDot = endDot;
+    }
+
+    public Difficulty(String name, int correctPercentage) {
+        this.name = name;
+        this.correctPercentage = correctPercentage;
     }
 
     public void drawDifficultyBox(Graphics2D g, Font font, int x, int y, double size, boolean isSelected){
@@ -40,17 +46,21 @@ public class Difficulty {
     public void drawDifficultyInfo(Graphics2D g, Font font, int x, int y, double size){
         //From To
         g.setColor(new Color(255,255,255));
-        g.setFont(font.deriveFont(Font.BOLD, (float) size));
-        String text = startDot.name + " -> " + endDot.name;
-        g.drawString(text.toUpperCase(), (int) (-(text.length() / 2.0) * size/1.66) + x, y);
+        if (startDot != null) {
+            g.setFont(font.deriveFont(Font.BOLD, (float) size));
+            String text = startDot.name + " -> " + endDot.name;
+            g.drawString(text.toUpperCase(), (int) (-(text.length() / 2.0) * size/1.66) + x, y);
+        }
 
         //Percentage & Speed
         size *= 1.75;
         g.setFont(font.deriveFont(Font.PLAIN, (float) size));
-        text = correctPercentage + "%";
+        String text = correctPercentage + "%";
+        //String text = (int) Math.ceil(211.0 * (correctPercentage / 100.0)) + " c.";
         g.drawString(text, (int) (-(text.length() / 2.0) * size/1.66 + x - size * 2), (int) (y + size/1.25));
 
-        text = flightDuration + "s";
+        if (startDot != null) text = flightDuration + "s";
+        else text = "∞s";
         g.drawString(text, (int) (-(text.length() / 2.0) * size/1.66 + x + size * 2), (int) (y + size/1.25));
     }
 

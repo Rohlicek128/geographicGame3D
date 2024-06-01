@@ -2,7 +2,8 @@ import java.awt.*;
 
 public class Main {
     public static void main(String[] args) {
-        Color primary = new Color(237, 243, 250);
+        //Color primary = new Color(237, 243, 250);
+        Color primary = new Color(229, 238, 250);
         Color secondary = new Color(34, 86, 115);
         Color correct = new Color(27, 222, 102);
         Color wrong = new Color(193, 1, 47);

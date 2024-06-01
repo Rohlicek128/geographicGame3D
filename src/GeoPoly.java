@@ -31,6 +31,9 @@ public class GeoPoly implements Serializable {
         }
     }
 
+    /**
+     * Sets random color to every triangle.
+     */
     public void setRandomColor(){
         Random r = new Random();
         for (Triangle t : triangles){
@@ -42,6 +45,11 @@ public class GeoPoly implements Serializable {
         }
     }
 
+    /**
+     * Converts list of vertices to geometry class.
+     * @param v - list of vertices.
+     * @return - Geometry class.
+     */
     public Geometry verticesToGeometry(ArrayList<Vertex> v){
         Coordinate[] coordinates = new Coordinate[v.size() + 1];
         for (int i = 0; i < v.size(); i++){
@@ -55,6 +63,11 @@ public class GeoPoly implements Serializable {
         return new GeometryFactory().createPolygon(coordinates);
     }
 
+    /**
+     * Converts geometry class to list of triangles.
+     * @param g - Geometry class.
+     * @return list of triangles.
+     */
     public ArrayList<Triangle> geometryToTriangles(Geometry g){
         ArrayList<Triangle> temp = new ArrayList<>();
         for (int i = 0; i < g.getNumGeometries(); i++) {
@@ -69,6 +82,13 @@ public class GeoPoly implements Serializable {
         return temp;
     }
 
+    /**
+     * Uses JTS Library to triangulate the polygon (list of vertices) to a list of triangles.
+     * @param g - polygon (list of vertices).
+     * @param nRefinements - how many times does it retriangulates.
+     * @param tolerance - tolerance.
+     * @return list of triangles.
+     */
     public ArrayList<Triangle> triangulation(Geometry g, int nRefinements, double tolerance){
         DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
         GeometryFactory gf = new GeometryFactory();
@@ -102,6 +122,10 @@ public class GeoPoly implements Serializable {
         return geometryToTriangles(triangulation);
     }
 
+    /**
+     * Loads array of doubles to vertices.
+     * @param gps - coordinates.
+     */
     public void loadGPStoCoordinates(double[][] gps){
         int resize = 1;
         for (double[] g : gps) {
@@ -112,6 +136,11 @@ public class GeoPoly implements Serializable {
         }
     }
 
+    /**
+     * Transforms Cartesian coordinates to Spherical coordinates.
+     * @param gps - Cartesian coordinates.
+     * @return Spherical coordinates
+     */
     public static Vertex gpsToSphere(Vertex gps){
         double resize = 100.0;
         double x = resize * Math.cos(Math.toRadians(gps.y)) * Math.sin(Math.toRadians(gps.x));

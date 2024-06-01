@@ -15,6 +15,12 @@ public class Triangle implements Serializable {
         this.color = color;
     }
 
+    /**
+     * Flat shades the color by the Z component of a normal vector.
+     * @param color - color to be recolored.
+     * @param shadow - Z component of a normal vector
+     * @return Shaded color.
+     */
     public static Color getShadow(Color color, double shadow){
         if (shadow < 0) shadow = 0;
         double gamma = 1.5;

@@ -36,13 +36,73 @@ public class Countries implements Serializable {
         }
     }
 
+    /**
+     * Sets every triangle to random color.
+     */
     public void setRandomTriangleColor(){
         for (CountryPolygon p : polygons){
             p.geoShapes.setRandomColor();
         }
     }
 
-    //"{""coordinates"": [[[77.88883000000004, 35.44156000000004], [77.91205000000008, 35.43726000000004], ...
+    /**
+     * If cache isn't found, it rebuilds them from scratch.
+     * @param file - path to .csv
+     */
+    public void loadFromFile(String file){
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("world/world-administrative-boundaries.csv")));
+
+            br.readLine();
+            String s = "";
+            while ((s = br.readLine()) != null){
+                String[] split = s.split(";");
+
+                String[] geoPointSplit = split[0].split(",");
+                double[] geoPoint = new double[]{
+                        Double.parseDouble(geoPointSplit[0]),
+                        Double.parseDouble(geoPointSplit[1])
+                };
+
+                ArrayList<double[][]> GPSs = stringToPolygons(split[1]);
+
+                String name = split[5];
+                String continent = split[6];
+                String region = split[7];
+
+                int randomOffset = new Random().nextInt(55);
+                int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 100));
+
+                int red = Math.max(0, Math.min(255, secondary.getRed() + randomColor - randomOffset));
+                int green = Math.max(0, Math.min(255, secondary.getGreen() + randomColor - randomOffset));
+                int blue = Math.max(0, Math.min(255, secondary.getBlue() + randomColor - randomOffset));
+                int alpha = 255;
+
+                int multiCount = 1;
+                for (double[][] gps : GPSs){
+                    long startTime = System.currentTimeMillis();
+                    GeoPoly geoPoly = new GeoPoly(gps, new Color(red, green, blue, alpha));
+                    long currentTime = System.currentTimeMillis() - startTime;
+
+                    System.out.println((count + 1) + "-" + multiCount + ": " + name + " (" + currentTime + "ms)");
+                    multiCount++;
+
+                    polygons.add(new CountryPolygon(name, count, geoPoly, geoPoint, continent, region));
+                }
+                count++;
+            }
+        }
+        catch (Exception ignored){
+        }
+
+        writeToCache("resources/world/cache.txt");
+    }
+
+    /**
+     * Converts String of coordinates to polygons.
+     * @param data - Unconverted polygons
+     * @return MultiPolygon.
+     */
     public ArrayList<double[][]> stringToPolygons(String data){
         data = data.replace("\"{\"\"coordinates\"\": ", "");
         data = data.replace(", \"\"type\"\": \"\"Polygon\"\"}\"", "");
@@ -89,55 +149,11 @@ public class Countries implements Serializable {
         return result;
     }
 
-    public void loadFromFile(String file){
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-
-            br.readLine();
-            String s = "";
-            while ((s = br.readLine()) != null){
-                String[] split = s.split(";");
-
-                String[] geoPointSplit = split[0].split(",");
-                double[] geoPoint = new double[]{
-                        Double.parseDouble(geoPointSplit[0]),
-                        Double.parseDouble(geoPointSplit[1])
-                };
-
-                ArrayList<double[][]> GPSs = stringToPolygons(split[1]);
-
-                String name = split[5];
-                String continent = split[6];
-                String region = split[7];
-
-                int randomOffset = new Random().nextInt(55);
-                int randomColor = (int) Math.round(Math.abs(Math.sin(Math.toRadians(geoPoint[0])) * 100));
-
-                int red = Math.max(0, Math.min(255, secondary.getRed() + randomColor - randomOffset));
-                int green = Math.max(0, Math.min(255, secondary.getGreen() + randomColor - randomOffset));
-                int blue = Math.max(0, Math.min(255, secondary.getBlue() + randomColor - randomOffset));
-                int alpha = 255;
-
-                int multiCount = 1;
-                for (double[][] gps : GPSs){
-                    long startTime = System.currentTimeMillis();
-                    GeoPoly geoPoly = new GeoPoly(gps, new Color(red, green, blue, alpha));
-                    long currentTime = System.currentTimeMillis() - startTime;
-
-                    System.out.println((count + 1) + "-" + multiCount + ": " + name + " (" + currentTime + "ms)");
-                    multiCount++;
-
-                    polygons.add(new CountryPolygon(name, count, geoPoly, geoPoint, continent, region));
-                }
-                count++;
-            }
-        }
-        catch (Exception ignored){
-        }
-
-        writeToCache("world/cache.txt");
-    }
-
+    /**
+     * Recolors every country by color and their distance from the equator.
+     * @param c - color
+     * @param darkenCoef - how darker should it be.
+     */
     public void recolorCountries(Color c, int darkenCoef){
         for (int i = 0; i <= polygons.get(polygons.size() - 1).id; i++) {
             int plusID = 0;
@@ -161,6 +177,10 @@ public class Countries implements Serializable {
         }
     }
 
+    /**
+     * Writes countries to cache for faster startup.
+     * @param path - path to cache
+     */
     public void writeToCache(String path){
         try {
             FileOutputStream file = new FileOutputStream(path);
@@ -176,6 +196,10 @@ public class Countries implements Serializable {
         }
     }
 
+    /**
+     * Reads countries from cache for faster startup.
+     * @param path - path to cache
+     */
     public void readFromCache(String path){
         try {
             //FileInputStream file = new FileInputStream(Objects.requireNonNull(this.getClass().getResource(path)).getFile());

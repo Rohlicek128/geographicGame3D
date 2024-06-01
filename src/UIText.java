@@ -10,7 +10,13 @@ public class UIText {
         this.isSpaceAbove = isSpaceAbove;
     }
 
-    public static void drawTextBox(Graphics2D g, char[] spaces, int currentIndex, Font font, int cX, int cY, double size){
+    /**
+     * Draws cells to accommodate the text.
+     * @param g - Graphics.
+     * @param spaces - the text
+     * @param greyedOut - hint text.
+     */
+    public static void drawTextBox(Graphics2D g, char[] spaces, char[] greyedOut, int currentIndex, Font font, int cX, int cY, double size){
         int cells = spaces.length;
         int w = (int) (size / cells);
         int h = (int) (w * 1.1);
@@ -20,9 +26,13 @@ public class UIText {
             g.setColor(new Color(255,255,255));
             g.drawRect(x, cY, w, h);
 
-            //Name
+            //Field
             g.setFont(font.deriveFont(Font.BOLD, (float) (w * 1.28)));
             if (currentIndex > i) g.drawString(String.valueOf(spaces[i]), x + hOffset, cY + h - hOffset);
+            else if (greyedOut != null) {
+                g.setColor(new Color(255,255,255, 28));
+                g.drawString(String.valueOf(greyedOut[i]), x + hOffset, cY + h - hOffset);
+            }
 
             //Underscore
             if (currentIndex == i) {

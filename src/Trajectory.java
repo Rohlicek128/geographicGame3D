@@ -32,7 +32,10 @@ public class Trajectory {
         Collections.reverse(dotSegments);
     }
 
-    //Segments from start dot to end dot
+    /**
+     * Creates Dots between the start dot and the end dot in a straight line.
+     * The amount can be set by frequency or by setting an exact number.
+     */
     public void setSegments(){
         dotSegments = new ArrayList<>();
         Vertex sv = GeoPoly.gpsToSphere(end.v);
@@ -56,6 +59,14 @@ public class Trajectory {
         }
     }
 
+    /**
+     * Offsets the straight line to roughly follow earths surface.
+     * I don't have the skills to calculate it properly via the Great Circle.
+     * @param v - the dot to be offset.
+     * @param s - it's place in the trajectory.
+     * @param pyth - length of the straight line between start and end dot.
+     * @return offset vertex.
+     */
     public Vertex offsetVertexToSphere(Vertex v, int s, double pyth){
         double heightDiv = Math.pow(200 / pyth, Math.min(1.5, 220 / pyth));
         //System.out.println(pyth + ", " + heightDiv);
@@ -67,6 +78,12 @@ public class Trajectory {
         return new Vertex(x, y, z);
     }
 
+    /**
+     * Recolor a certain part of the trajectory.
+     * @param color - color to be recolored with.
+     * @param startPerc - from which the recoloring starts.
+     * @param endPerc - at which the recoloring end.
+     */
     public void recolorFromPercentage(Color color, double startPerc, double endPerc){
         int startIndex = (int) Math.floor(numOfSegments * startPerc);
         int endIndex = (int) Math.floor(numOfSegments * endPerc);

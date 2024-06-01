@@ -20,6 +20,10 @@ public class RocketTrajectory extends Trajectory{
         }
     }
 
+    /**
+     * Animates the rocket bit by bit every time it's called.
+     * @param show - if the rocket us visible.
+     */
     public void updateRocket(boolean show){
         int rocketSize = 3;
         try {
@@ -45,6 +49,11 @@ public class RocketTrajectory extends Trajectory{
         currentSegment = Math.min(numOfSegments, currentSegment);
     }
 
+    /**
+     * Starts the explosion.
+     * @param durationMillis - duration of the explosion in milliseconds.
+     * @param maxSize - size of the explosion.
+     */
     public void explodeRocket(int durationMillis, int maxSize){
         if (explode) return;
 
@@ -56,6 +65,10 @@ public class RocketTrajectory extends Trajectory{
         updateRocket(false);
     }
 
+    /**
+     * Every time it's called it animates it bit by bit.
+     * @param curFps - offsets the animation by the amount of fps lag.
+     */
     public void animateExplosion(int curFps){
         explosionFrame += (int) ((1.0 / curFps) * 1000.0);
 

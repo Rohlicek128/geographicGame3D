@@ -18,6 +18,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     Timer rocketTicks;
     Timer update;
+    Timer fps;
     long startTime;
     long endTime;
     boolean gameStart = false;
@@ -26,6 +27,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
     ArrayList<Dot> dots = new ArrayList<>();
     ArrayList<Trajectory> trajectories = new ArrayList<>();
+    ArrayList<MouseText> mouseTexts = new ArrayList<>();
 
     static final int EARTH_DIAMETER = 200;
 
@@ -49,6 +51,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     int wrongMax = 3;
     boolean view = false;
     boolean viewTooltip = false;
+    boolean viewKeyHelp = false;
 
     Color primary;
     Color secondary;
@@ -64,7 +67,6 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     boolean rocketShow = true;
     int coreCount = 2;
     int trianglesRendered = 0;
-    ArrayList<String> backlog = new ArrayList<>();
 
     public RenderPanel(Color p, Color s, Countries preloaded, Difficulty difficulty) {
         if (preloaded != null) this.countries = preloaded;
@@ -82,10 +84,20 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         update.setRepeats(true);
         update.start();
 
+        fps = new Timer(1000, e -> {
+            printFrames = frames;
+            frames = 0;
+        });
+        fps.setRepeats(true);
+        fps.start();
+
+        gameAudio = new GameAudio();
         //startGame();
     }
 
+    @Override
     public void paintComponent(Graphics g1){
+        super.paintComponent(g1);
         Graphics2D g = (Graphics2D) g1;
 
         //Fill Background
@@ -95,24 +107,11 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         //Transform
         Matrix3 transform = getMatrixTransformation();
 
-        //Idle spin
-        if (!gameStart) {
-            zoomSize = 2.4;
+        //Start idle spin
+        if (!gameStart){
+            zoomSize = Math.max(0.1, getHeight() / 300.0);
             spinEarth();
         }
-
-        //Backlog
-        /*int fontSize = (int) (getWidth() * 1.0/18.0);
-        g.setFont(courierFontBold.deriveFont((float) fontSize));
-        for (int i = backlog.size() - 1; i >= 0; i--) {
-            if (fontSize * (backlog.size() - i - 1) > getHeight()) break;
-            String[] text = backlog.get(i).split(": ");
-            switch (text[0]){
-                case "Correct" -> g.setColor(new Color(correctColor.getRed(),correctColor.getGreen(),correctColor.getBlue(), 19));
-                case "Wrong" -> g.setColor(new Color(wrongColor.getRed(), wrongColor.getGreen(), wrongColor.getBlue(), 23));
-            }
-            g.drawString(text[1].toUpperCase(), (int) (-(text[1] .length() / 2.0) * fontSize/1.66) + getWidth() / 2, fontSize * (backlog.size() - i));
-        }*/
 
         //Translate to center of the screen
         g.translate(getWidth() / 2, getHeight() / 2);
@@ -177,7 +176,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         g.fill(new Ellipse2D.Double((int) -(EARTH_DIAMETER * zoomSize) / 2.0,(int) -(EARTH_DIAMETER * zoomSize) / 2.0, (int) (EARTH_DIAMETER * zoomSize), (int) (EARTH_DIAMETER * zoomSize)));
 
         //Rocket Explosion
-        if (trajectories.size() >= 2 ){
+        if (trajectories.size() >= 2){
             RocketTrajectory rt = (RocketTrajectory) trajectories.get(1);
             if (rt.explode){
                 try {
@@ -186,6 +185,14 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 }
                 catch (Exception ignored){
                 }
+            }
+        }
+        if (difficulty.startDot == null){
+            try {
+                continentsState.getCurrentCorrectMax(continentsState.currentIndex);
+            }
+            catch (Exception e){
+                endGame(EndType.WON);
             }
         }
 
@@ -229,7 +236,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         //If mouse is on a country
         if (changeCursor) {
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            if (this.getCursor() != Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)) this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             //Outline
             for (CountryPolygon cp : countries.polygons){
@@ -260,24 +267,47 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         //UI
         if (!gameEnd && gameStart) {
-            g.setColor(new Color(255,255,255, (int) Math.min(150, Math.max(0, 150 - (zoomSize*2 - 50)))));
+            g.setColor(new Color(255,255,255, (int) Math.min(150, Math.max(0, 150 - (zoomSize - 160)))));
             String correctAmountText = continentsState.correctCount + "/" + continentsState.getCurrentCorrectMax(continentsState.currentIndex);
             int fontSize = 35;
             g.setFont(courierFontBold.deriveFont((float) fontSize));
             g.drawString(correctAmountText, (int) (-(correctAmountText.length() / 2.0) * fontSize/1.66), (int) ((getHeight()/2 - 360) + 360 * 7.2/10));
 
-            g.setColor(new Color(255,255,255, (int) Math.min(175, Math.max(0, 175 - (zoomSize*1.5 - 50)))));
-            String clickText = "Click on " + randomCountry.toUpperCase();
-            fontSize = 25;
-            g.setFont(courierFontRegular.deriveFont(Font.PLAIN, (float) fontSize));
-            g.drawString(clickText, (int) (-(clickText.length() / 2.0) * fontSize/1.66), (getHeight()/2 - 360) + 360 * 9/10);
-
+            g.setColor(new Color(255,255,255, (int) Math.min(175, Math.max(0, 175 - (zoomSize * 0.75 - 160)))));
             String continent = continentsState.orderedContinents.get(continentsState.currentIndex).name.toUpperCase();
             if (randomCountry.equalsIgnoreCase("Russia")) continent = "\"EUROPE\"";
+            fontSize = 25;
+            g.setFont(courierFontRegular.deriveFont(Font.PLAIN, (float) fontSize));
+            g.drawString(continent, (int) (-(continent.length() / 2.0) * fontSize/1.66), (getHeight()/2 - 360) + 360 * 9/10);
+
+            String country = randomCountry.toUpperCase();
             fontSize = 50;
             g.setFont(courierFontBold.deriveFont((float) fontSize));
-            g.drawString(continent, (int) (-(continent.length() / 2.0) * fontSize/1.66), (int) ((getHeight()/2 - 360) + 360 * 8.35/10));
+            g.drawString(country, (int) (-(country.length() / 2.0) * fontSize/1.66), (int) ((getHeight()/2 - 360) + 360 * 8.35/10));
         }
+
+        //Start text
+        if (!gameStart) {
+            //Start text
+            int fontSize = 35;
+            g.setColor(new Color(255,255,255, (int) (Math.min(1, Math.ceil(Math.sin(System.currentTimeMillis() / (Math.PI * 100)) + 0.25)) * 165.0)));
+            g.setFont(courierFontBold.deriveFont(Font.ITALIC, (float) fontSize));
+            String text = "Press any key to start...";
+            g.drawString(text, (int) (-(text.length() / 2.0) * fontSize/1.66), fontSize / 2);
+
+            //Copyright
+            fontSize = 20;
+            g.setColor(new Color(255,255,255, 20));
+            g.setFont(courierFontBold.deriveFont(Font.ITALIC, (float) fontSize));
+            text = "© 2024 Adam Švec, No rights reserved";
+            g.drawString(text.toUpperCase(), (int) (-(text.length() / 2.0) * fontSize/1.66), getHeight() / 2 - 30);
+        }
+
+        //Translate back
+        g.translate(-getWidth() / 2, -getHeight() / 2);
+
+        //Draw Mouse texts
+        mouseTexts.removeIf(mt -> mt.drawMouseText(g, courierFontBold, 25, (int) ((1.0 / printFrames) * 1000)));
 
         //Tooltip
         if (viewTooltip){
@@ -285,13 +315,15 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             uiTooltipText.add(new UIText(printFrames + " fps", false));
 
             uiTooltipText.add(new UIText("Difficulty: " + difficulty.name.toUpperCase(), true));
-            uiTooltipText.add(new UIText(difficulty.startDot.name + " -> " + difficulty.endDot.name, false));
+            if (difficulty.startDot != null) uiTooltipText.add(new UIText(difficulty.startDot.name + " -> " + difficulty.endDot.name, false));
 
-            uiTooltipText.add(new UIText("Guessed:  " + continentsState.overallCorrectCount + "/" + continentsState.overallMaxCorrect + " [" + continentsState.correctPercentage + "%]", true));
+            uiTooltipText.add(new UIText("Guessed:  " + continentsState.overallCorrectCount + "/" + continentsState.overallMaxCorrect + " [" + difficulty.correctPercentage + "%]", true));
             uiTooltipText.add(new UIText("Wrong:  " + continentsState.overallWrongCount + "/" + (continentsState.wrongMax * continentsState.overallMaxCorrect), false));
-            RocketTrajectory rocket = (RocketTrajectory) trajectories.get(1);
-            uiTooltipText.add(new UIText("Time:  " + Math.round((System.currentTimeMillis() - startTime) / 100.0) / 10.0 + " s / " + rocket.flightDuration + " s", false));
-            uiTooltipText.add(new UIText("Volume:  " + gameAudio.audioVolume + " db", false));
+            uiTooltipText.add(new UIText("Points:  " + continentsState.points + " pt", false));
+            if (difficulty.startDot != null) {
+                RocketTrajectory rocket = (RocketTrajectory) trajectories.get(1);
+                uiTooltipText.add(new UIText("Time:  " + Math.round((System.currentTimeMillis() - startTime) / 100.0) / 10.0 + " s / " + rocket.flightDuration + " s", false));
+            }
 
             uiTooltipText.add(new UIText("Resolution:  " + getWidth() + "x" + getHeight(), true));
             uiTooltipText.add(new UIText("Render Cores:  " + coreCount, false));
@@ -299,9 +331,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
             uiTooltipText.add(new UIText("Transform angle:  X: " + Math.round(xAng * 10.0) / 10.0 + ", Y: " + Math.round(yAng * 10.0) / 10.0, true));
             uiTooltipText.add(new UIText("Zoom:  " + zoomSize + "x", false));
+            uiTooltipText.add(new UIText("Volume:  " + gameAudio.audioVolume + " db", false));
 
-            int x = -getWidth() / 2;
-            int y = -getHeight() / 2;
+            int x = 0;
+            int y = 0;
             int fontSize = 20;
             g.setColor(new Color(255,255,255));
             g.setFont(new Font("Ariel", Font.BOLD, fontSize));
@@ -311,6 +344,42 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 spaceCount += uiTooltipText.get(i).isSpaceAbove ? 1 : 0;
                 g.drawString(uiTooltipText.get(i).text, x, y + fontSize * (i + 1 + spaceCount));
             }
+        }
+
+        //Key Help
+        if (viewKeyHelp){
+            ArrayList<UIText> uiKeyHelpText = new ArrayList<>();
+            uiKeyHelpText.add(new UIText("F1 = This menu", false));
+            uiKeyHelpText.add(new UIText("F3 = Info menu", false));
+            uiKeyHelpText.add(new UIText("F11 = Fullscreen (Not recommended)", false));
+            uiKeyHelpText.add(new UIText("ESCAPE = Quit Game", true));
+
+            uiKeyHelpText.add(new UIText("R = Return to menu", false));
+            uiKeyHelpText.add(new UIText("C = Center camera to current continent", true));
+
+            uiKeyHelpText.add(new UIText("PAUSE = Stops rockets beeping", false));
+            uiKeyHelpText.add(new UIText("PAGE UP = Increases audio volume", false));
+            uiKeyHelpText.add(new UIText("PAGE DOWN = Decreases audio volume", false));
+
+            int x = 0;
+            int y = getHeight();
+            int fontSize = 20;
+            g.setColor(new Color(255,255,255));
+            g.setFont(new Font("Ariel", Font.BOLD, fontSize));
+
+            int spaceCount = 0;
+            Collections.reverse(uiKeyHelpText);
+            for (int i = 0; i < uiKeyHelpText.size(); i++) {
+                spaceCount += uiKeyHelpText.get(i).isSpaceAbove ? 1 : 0;
+                g.drawString(uiKeyHelpText.get(i).text, x, y - fontSize * (i + 6 + spaceCount));
+            }
+        }
+
+        //Scanlines
+        int thickness = 2;
+        for (int i = 0; i < getHeight() / (thickness * 2); i++) {
+            g.setColor(new Color(0,0,0, 40));
+            g.fillRect(0, i * (thickness * 2), getWidth(), thickness);
         }
 
         trianglesRendered = 0;
@@ -359,6 +428,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         return new Color(r, g, b);
     }
 
+    /**
+     * Generates next random country until it meets all the requirements.
+     * @param lastName - Last generated country.
+     */
     public void nextRandomName(String lastName){
         if (gameEnd) return;
 
@@ -424,16 +497,17 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
     public void spinEarth(){
         xAng -= 0.35;
         yAng = -35.0;
+        //yAng -= 0.35;
     }
 
+    /**
+     * Starts the game.
+     */
     public void startGame(){
-        this.continentsState = new ContinentsState(600, difficulty.correctPercentage, wrongMax, countries);
+        this.continentsState = new ContinentsState(600, difficulty, wrongMax);
+        this.continentsState.loadNumOfCountries(countries);
         //continentsState.randomizeOrder();
         setCameraToCoordinates(continentsState.orderedContinents.get(continentsState.currentIndex).centralCoordinates);
-
-        this.trajectories.add(new Trajectory(difficulty.startDot, difficulty.endDot, true, 300));
-        this.trajectories.add(new RocketTrajectory(difficulty.startDot, difficulty.endDot, difficulty.flightDuration));
-        System.out.println("Rocket distance: " + trajectories.get(1).straightDistance + " km");
 
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
@@ -446,35 +520,47 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
 
         gameStart = true;
 
-        gameAudio = new GameAudio();
-        gameAudio.start();
+        if (difficulty.startDot != null){
+            this.trajectories.add(new Trajectory(difficulty.startDot, difficulty.endDot, true, 300));
+            this.trajectories.add(new RocketTrajectory(difficulty.startDot, difficulty.endDot, difficulty.flightDuration));
+            System.out.println("Rocket distance: " + trajectories.get(1).straightDistance + " km");
 
-        AtomicBoolean nextSec = new AtomicBoolean(true);
-        rocketTicks = new Timer(1000, e -> {
-            printFrames = frames;
-            frames = 0;
+            gameAudio.start();
 
-            rocketShow = !rocketShow;
-            RocketTrajectory rt = (RocketTrajectory) trajectories.get(1);
+            AtomicBoolean nextSec = new AtomicBoolean(true);
+            rocketTicks = new Timer(1000, e -> {
+                rocketShow = !rocketShow;
+                RocketTrajectory rt = (RocketTrajectory) trajectories.get(1);
 
-            rt.updateRocket(rocketShow);
-            if (rocketShow) trajectories.get(0).recolorFromPercentage(new Color(0, true), 0, (double) rt.currentSegment / rt.numOfSegments);
-            if (rt.currentSegment >= rt.numOfSegments && rocketShow && !toFixBug) {
-                if (nextSec.get()) nextSec.set(false);
-                else endGame(EndType.LOST);
-            }
-            repaint();
-        });
-        rocketTicks.setRepeats(true);
-        rocketTicks.start();
+                rt.updateRocket(rocketShow);
+                if (rocketShow) trajectories.get(0).recolorFromPercentage(new Color(0, true), 0, (double) rt.currentSegment / rt.numOfSegments);
+                if (rt.currentSegment >= rt.numOfSegments && rocketShow && !toFixBug) {
+                    if (nextSec.get()) nextSec.set(false);
+                    else {
+                        gameEnd = true;
+                        endTime = System.currentTimeMillis() - startTime - 1000;
+                        endGame(EndType.LOST);
+                    }
+                }
+                repaint();
+            });
+            rocketTicks.setRepeats(true);
+            rocketTicks.start();
+        }
 
         startTime = System.currentTimeMillis();
     }
 
+    /**
+     * Ends the game.
+     * @param endType
+     */
     public void endGame(EndType endType){
         toFixBug = true;
-        this.rocketTicks.start();
-        this.update.stop();
+        if (difficulty.startDot != null){
+            this.rocketTicks.start();
+            this.update.stop();
+        }
 
         interruptAudio();
         this.setVisible(false);
@@ -491,6 +577,10 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         while (gameAudio.isAlive());
     }
 
+    /**
+     * Moves camera to desired coordinates.
+     * @param coordinates - coordinates in the Cartesian coordinate system.
+     */
     public void setCameraToCoordinates(double[] coordinates){
         double x = -coordinates[0];
         double y = -coordinates[1];
@@ -515,7 +605,7 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
         double xi = dpi / Math.max(2.5, zoomSize) * 8;
         double yi = dpi / Math.max(2.5, zoomSize) * 8;
         xAng = -((xCurrent - (e.getX())) * xi - xLastAng);
-        yAng = (yCurrent - (e.getY())) * yi + yLastAng;
+        yAng = Math.max(-90.0, Math.min(90.0, (yCurrent - (e.getY())) * yi + yLastAng));
         repaint();
     }
 
@@ -537,10 +627,13 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
             continentsState.correctCount++;
             continentsState.overallCorrectCount++;
 
+            int points = (30 - (wrongAmount * 10)) / (difficulty.startDot == null ? 2 : 1);
+            continentsState.points += points;
+            mouseTexts.add(new MouseText("+" + points, mouseX, mouseY, 750));
+
             guessedCountries.add(countries.findByName(mouseOnCountry).id);
 
             System.out.println("Correct: " + mouseOnCountry.toUpperCase());
-            backlog.add("Correct: " + mouseOnCountry.toUpperCase());
 
             nextRandomName(randomCountry);
             wrongAmount = 0;
@@ -551,8 +644,8 @@ public class RenderPanel extends JPanel implements MouseMotionListener, MouseLis
                 continentsState.overallWrongCount++;
             }
 
+            mouseTexts.add(new MouseText("X", mouseX, mouseY, 750));
             System.out.println("Wrong: " + mouseOnCountry.toUpperCase());
-            backlog.add("Wrong: " + mouseOnCountry.toUpperCase());
         }
         repaint();
     }

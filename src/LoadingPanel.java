@@ -28,6 +28,7 @@ public class LoadingPanel extends JPanel implements ActionListener {
         timer.start();
     }
 
+    @Override
     public void paintComponent(Graphics g1){
         Graphics2D g = (Graphics2D) g1;
 

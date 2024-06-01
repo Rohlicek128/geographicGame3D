@@ -4,10 +4,12 @@ public class Score implements Comparable, Serializable {
 
     String name;
     int score;
+    Difficulty difficulty;
 
-    public Score(String name, int score) {
+    public Score(String name, int score, Difficulty difficulty) {
         this.name = name;
         this.score = score;
+        this.difficulty = difficulty;
     }
 
     @Override

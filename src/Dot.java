@@ -1,6 +1,7 @@
 import java.awt.*;
+import java.io.Serializable;
 
-public class Dot {
+public class Dot implements Serializable {
 
     Vertex v;
     int size;
